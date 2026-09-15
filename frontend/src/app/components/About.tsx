@@ -89,7 +89,7 @@ export function About() {
     if (!video) return;
 
     if (isPlaying) {
-      video.play().catch(() => {});
+      video.play().catch(() => { });
     } else {
       video.pause();
     }
@@ -272,11 +272,10 @@ export function About() {
                 onClick={() => {
                   if (index !== currentSlide) transitionToSlide(index);
                 }}
-                className={`h-2 rounded-full transition-all duration-400 ${
-                  index === currentSlide
+                className={`h-2 rounded-full transition-all duration-400 ${index === currentSlide
                     ? 'w-8 bg-[#E89B3C]'
                     : 'w-2 bg-white/30 hover:bg-white/60'
-                }`}
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

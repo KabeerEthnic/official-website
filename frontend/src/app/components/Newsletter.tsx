@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { useInView } from 'motion/react';
 import { useRef, useState } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 
@@ -20,7 +20,7 @@ export function Newsletter() {
   return (
     <section ref={ref} className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-[#0F2418] via-[#112A1C] to-[#0D1F15]"></div>
-      
+
       {/* Decorative warm glows */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-white/[0.05] rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#E89B3C]/[0.08] rounded-full blur-3xl"></div>
@@ -32,17 +32,7 @@ export function Newsletter() {
           transition={{ duration: 0.6 }}
           className="text-center text-white"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={isInView ? { scale: 1 } : { scale: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="inline-flex items-center gap-2 mb-6 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full"
-          >
-            <Sparkles className="w-5 h-5 text-[#E89B3C]" />
-            <span className="text-[#F5B968] tracking-wider uppercase text-sm">
-              Exclusive Offers
-            </span>
-          </motion.div>
+
 
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -93,7 +83,7 @@ export function Newsletter() {
             initial={{ opacity: 0 }}
             animate={isInView ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="text-sm text-[#F5B968] mt-4"
+            className="text-sm text-[#ffffff] mt-4"
           >
             We respect your privacy. Unsubscribe anytime.
           </motion.p>

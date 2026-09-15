@@ -263,9 +263,8 @@ export function Categories() {
                     {/* Text overlay — only prominent on center cards */}
                     <div className="absolute inset-0 flex flex-col justify-end p-8 text-white">
                       <h3
-                        className={`font-serif mb-2 drop-shadow-lg transition-all duration-300 ${
-                          isCenter ? 'text-3xl sm:text-4xl' : 'text-2xl'
-                        }`}
+                        className={`font-serif mb-2 drop-shadow-lg transition-all duration-300 ${isCenter ? 'text-3xl sm:text-4xl' : 'text-2xl'
+                          }`}
                       >
                         {category.name}
                       </h3>
@@ -297,11 +296,10 @@ export function Categories() {
               <button
                 key={index}
                 onClick={() => jumpTo(index)}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentIndex
+                className={`h-2 rounded-full transition-all duration-300 ${index === currentIndex
                     ? 'w-12 bg-[#E89B3C]'
                     : 'w-2 bg-white/40 hover:bg-white/70'
-                }`}
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}

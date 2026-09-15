@@ -4,10 +4,11 @@ import { Star, Heart, ShoppingBag, Truck, Shield, ArrowLeft, ArrowRight, Sparkle
 import { Link, useSearchParams } from 'react-router';
 import { products, Product } from '../data/products';
 import { Footer } from '../components/Footer';
+import { BagsSection } from '../components/BagsSection';
 import heroSuitsImg from '../../imports/hero-suits.png';
 import heroCordsetImg from '../../imports/hero-cordset.png';
 
-const categories = ['All', 'Sarees', 'Lehengas', 'Suits', 'Kurtis', 'Cord Sets'];
+const categories = ['All', 'Bags', 'Suits', 'Kurtis', 'Cord Sets'];
 const colors = ['Red', 'Pink', 'Gold', 'Maroon', 'Green', 'Blue', 'Purple'];
 const priceRanges = [
   { label: 'All Prices', min: 0, max: 100000 },
@@ -33,37 +34,21 @@ const themes = {
     pillInactive: 'bg-white/5 border-white/10 text-white/70 hover:border-white/30 hover:text-white',
     divider: 'border-white/10'
   },
-  Sarees: {
-    bg: 'bg-gradient-to-b from-[#07140B] via-[#0B1E13] to-[#07140B] text-white font-cinzel',
-    sidebarTitle: 'text-white border-white/10 font-cinzel font-bold tracking-widest text-sm uppercase',
-    sidebarText: 'text-white/70 hover:text-white font-cinzel text-sm',
-    sidebarDot: 'bg-[#D4AF37]',
-    accentColor: '#D4AF37',
-    accentText: 'text-[#D4AF37]',
-    buttonBg: 'bg-white/5 hover:bg-[#D4AF37] hover:text-black border-white/10 text-white',
-    headingFont: "font-cinzel text-white uppercase tracking-widest font-medium",
-    cardBg: 'bg-white/[0.03] border-white/10 hover:border-[#D4AF37]/50 text-white',
-    title: 'Heritage Sarees',
-    desc: 'Royal weaves and imperial silk sarees designed for family legacies',
-    pillActive: 'bg-[#D4AF37] text-black border-[#D4AF37] font-semibold',
-    pillInactive: 'bg-white/5 border-white/10 text-white/70 hover:border-white/30 hover:text-white',
-    divider: 'border-white/10'
-  },
-  Lehengas: {
-    bg: 'bg-gradient-to-b from-[#FFF5F6] via-[#FAF0F1] to-[#FFF5F6] text-[#3D1B20] font-serif',
-    sidebarTitle: 'text-[#3D1B20] border-[#3D1B20]/15 font-serif font-bold uppercase tracking-widest text-sm',
-    sidebarText: 'text-[#3D1B20]/70 hover:text-[#3D1B20] font-serif text-sm',
-    sidebarDot: 'bg-[#E3A857]',
-    accentColor: '#E3A857',
-    accentText: 'text-[#E3A857]',
-    buttonBg: 'bg-[#3D1B20]/5 hover:bg-[#3D1B20] hover:text-white border-[#3D1B20]/10 text-[#3D1B20]',
-    headingFont: "font-serif text-[#3D1B20] font-light",
-    cardBg: 'bg-white/60 backdrop-blur-md border-[#3D1B20]/10 hover:border-[#E3A857]/50 text-[#3D1B20]',
-    title: 'Couture Lehengas',
-    desc: 'Fairytale wedding wear crafted with shimmering details and modern bridal glam',
-    pillActive: 'bg-[#3D1B20] text-white border-[#3D1B20] shadow-sm',
-    pillInactive: 'bg-white/80 border-[#3D1B20]/10 text-[#3D1B20]/70 hover:border-[#3D1B20]/30 hover:text-[#3D1B20]',
-    divider: 'border-[#3D1B20]/10'
+  Bags: {
+    bg: 'bg-[#FAF8F5] text-[#2D2A26]',
+    sidebarTitle: 'text-[#2D2A26] border-[#2D2A26]/10 font-serif font-bold uppercase tracking-widest text-sm',
+    sidebarText: 'text-[#8C7E7A] hover:text-[#2D2A26] font-serif text-sm',
+    sidebarDot: 'bg-[#E89B3C]',
+    accentColor: '#E89B3C',
+    accentText: 'text-[#E89B3C]',
+    buttonBg: 'bg-[#2D2A26] text-white hover:bg-[#E89B3C]',
+    headingFont: "font-serif text-[#2D2A26]",
+    cardBg: 'bg-[#FCFAF7] border-[#2D2A26]/8 text-[#2D2A26]',
+    title: 'Tote Bags & Accessories Atelier',
+    desc: 'Zardozi hand-embroidered clutches, velvet potlis, and antique brass totes',
+    pillActive: 'bg-[#2D2A26] text-white border-[#2D2A26]',
+    pillInactive: 'bg-white border-[#2D2A26]/10 text-[#2D2A26]/70 hover:text-[#2D2A26]',
+    divider: 'border-[#2D2A26]/10'
   }
 };
 
@@ -219,7 +204,7 @@ function KurtiCard({ product }: { product: Product }) {
         <span className="text-[10px] tracking-wider text-[#8C7E7A] uppercase mb-1.5 font-semibold">
           {product.subtitle}
         </span>
-        
+
         <Link to={`/product/${product.id}`}>
           <h3 className="font-cormorant text-2xl font-semibold text-[#2D2A26] group-hover:text-[#E89B3C] transition-colors duration-300 uppercase tracking-wide mb-2">
             {product.name}
@@ -254,7 +239,7 @@ function KurtiCard({ product }: { product: Product }) {
 function KurtisHero() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 h-auto md:h-screen w-full bg-[#FAF8F5] text-[#2D2A26] border-b border-[#2D2A26]/5 relative">
-      
+
       {/* Left Panel - Pink Kurta */}
       <div className="col-span-1 md:col-span-3 h-[450px] md:h-full relative overflow-hidden border-r border-[#2D2A26]/5 group">
         <motion.img
@@ -284,7 +269,7 @@ function KurtisHero() {
           >
             Kabeer Boutique Exclusive
           </motion.span>
-          
+
           <motion.h1
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -312,7 +297,7 @@ function KurtisHero() {
           >
             {/* Soft background pulse */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#7F8C76]/0 via-[#7F8C76]/5 to-[#7F8C76]/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            
+
             <div className="relative z-10">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#7F8C76]/10 text-[#7F8C76] font-bold text-[10px] tracking-wider uppercase mb-2">
                 Privilege Savings
@@ -384,7 +369,7 @@ function KurtisCollection({ filteredProducts }: { filteredProducts: Product[] })
 
   return (
     <div className="w-full min-h-screen bg-[#FAF8F5] text-[#2D2A26] flex flex-col font-sans overflow-x-hidden">
-      
+
       {/* Dynamic Three-Panel Hero Section */}
       <KurtisHero />
 
@@ -408,7 +393,7 @@ function KurtisCollection({ filteredProducts }: { filteredProducts: Product[] })
           <div className="space-y-36 md:space-y-48">
             {rows.map((row, rowIdx) => (
               <div key={rowIdx} className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-12 items-start relative">
-                
+
                 {/* Column 1: Left (Standard Height) */}
                 {row[0] && (
                   <div className="flex flex-col">
@@ -497,7 +482,7 @@ function CordSetHero() {
 
         {/* RIGHT HALF — Typography & CTA */}
         <div className="w-full md:w-[45%] h-auto md:h-screen bg-[#141414] flex flex-col justify-center items-start px-10 md:px-16 lg:px-20 py-16 md:py-0 relative">
-          
+
           {/* Subtle decorative vertical line */}
           <div className="absolute left-0 top-[15%] bottom-[15%] w-[1px] bg-gradient-to-b from-transparent via-white/10 to-transparent hidden md:block" />
 
@@ -594,9 +579,8 @@ function CordSetCard({ product, index }: { product: Product; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.7, delay: index % 2 === 1 ? 0.15 : 0, ease: [0.16, 1, 0.3, 1] }}
-      className={`group relative overflow-hidden rounded-2xl bg-[#1E1E1E] ${
-        index % 2 === 1 ? 'md:translate-y-12' : ''
-      }`}
+      className={`group relative overflow-hidden rounded-2xl bg-[#1E1E1E] ${index % 2 === 1 ? 'md:translate-y-12' : ''
+        }`}
     >
       <Link to={`/product/${product.id}`} className="block relative aspect-[3/4] w-full overflow-hidden">
         <img
@@ -893,11 +877,10 @@ export function Shop() {
     const param = searchParams.get('category');
     if (!param) return 'All';
     const lower = param.toLowerCase();
-    if (lower === 'suits') return 'Suits';
-    if (lower === 'sarees') return 'Sarees';
-    if (lower === 'lehengas') return 'Lehengas';
-    if (lower === 'kurtis') return 'Kurtis';
-    if (lower === 'cord sets' || lower === 'cord+sets') return 'Cord Sets';
+    if (lower.includes('tote') || lower.includes('bag') || lower.includes('potli')) return 'Bags';
+    if (lower.includes('suit')) return 'Suits';
+    if (lower.includes('kurti') || lower.includes('kurta')) return 'Kurtis';
+    if (lower.includes('cord')) return 'Cord Sets';
     return 'All';
   }, [searchParams]);
 
@@ -935,6 +918,15 @@ export function Shop() {
     });
   }, [activeCategory, activeColor, activePriceRange]);
 
+  if (activeCategory === 'Bags') {
+    return (
+      <div className="w-full min-h-screen bg-[#FAF8F5] text-[#2D2A26] relative select-none pt-20">
+        <BagsSection />
+        <Footer isIvoryTheme={true} />
+      </div>
+    );
+  }
+
   /* 
     IF THE CURRENT CATEGORY IS SUITS: Render the beautiful full-screen Snapping Editorial Lookbook layout.
     No top collections switcher, no sidebar filter panels, automatically sliding images, and automatic shining pills.
@@ -971,296 +963,296 @@ export function Shop() {
     <div className="w-full flex flex-col min-h-screen">
       <div className={`pt-32 pb-24 px-4 sm:px-6 lg:px-8 relative flex-grow transition-all duration-700 ${theme.bg}`}>
 
-      {/* Background glow effects - Styled per theme */}
-      {activeCategory === 'All' && (
-        <>
-          <div className="absolute inset-0 bg-[#0F2418]/90 -z-10"></div>
-          <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-[#FFF5EB]/[0.02] rounded-full blur-[100px] -z-10"></div>
-          <div className="absolute top-1/2 right-1/4 w-[500px] h-[500px] bg-[#E89B3C]/[0.03] rounded-full blur-[100px] -z-10"></div>
-        </>
-      )}
+        {/* Background glow effects - Styled per theme */}
+        {activeCategory === 'All' && (
+          <>
+            <div className="absolute inset-0 bg-[#0F2418]/90 -z-10"></div>
+            <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-[#FFF5EB]/[0.02] rounded-full blur-[100px] -z-10"></div>
+            <div className="absolute top-1/2 right-1/4 w-[500px] h-[500px] bg-[#E89B3C]/[0.03] rounded-full blur-[100px] -z-10"></div>
+          </>
+        )}
 
-      {activeCategory === 'Sarees' && (
-        <>
-          <div className="absolute inset-0 bg-[#06120A]/95 -z-10"></div>
-          <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-[#D4AF37]/[0.03] rounded-full blur-[120px] -z-10"></div>
-          <div className="absolute bottom-20 right-1/4 w-[500px] h-[500px] bg-[#800020]/[0.04] rounded-full blur-[100px] -z-10"></div>
-        </>
-      )}
+        {activeCategory === 'Sarees' && (
+          <>
+            <div className="absolute inset-0 bg-[#06120A]/95 -z-10"></div>
+            <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-[#D4AF37]/[0.03] rounded-full blur-[120px] -z-10"></div>
+            <div className="absolute bottom-20 right-1/4 w-[500px] h-[500px] bg-[#800020]/[0.04] rounded-full blur-[100px] -z-10"></div>
+          </>
+        )}
 
-      {activeCategory === 'Lehengas' && (
-        <>
-          <div className="absolute inset-0 bg-[#FFF5F6] -z-10"></div>
-          <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-[#FAF0F1] rounded-full blur-[90px] -z-10"></div>
-          <div className="absolute bottom-20 left-10 w-[500px] h-[500px] bg-[#E3A857]/[0.05] rounded-full blur-[110px] -z-10"></div>
-        </>
-      )}
+        {activeCategory === 'Lehengas' && (
+          <>
+            <div className="absolute inset-0 bg-[#FFF5F6] -z-10"></div>
+            <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-[#FAF0F1] rounded-full blur-[90px] -z-10"></div>
+            <div className="absolute bottom-20 left-10 w-[500px] h-[500px] bg-[#E3A857]/[0.05] rounded-full blur-[110px] -z-10"></div>
+          </>
+        )}
 
-      <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto">
 
-        {/* PREMIUM UPPER SWITCHER */}
-        <div className="flex justify-center mb-16">
-          <div className={`inline-flex items-center gap-1.5 p-1.5 rounded-full backdrop-blur-md border ${theme.divider} bg-white/5 shadow-md`}>
-            {categories.map((cat) => {
-              const isActive = activeCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => handleCategoryChange(cat)}
-                  className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-500 cursor-pointer ${isActive ? theme.pillActive : theme.pillInactive
-                    }`}
-                >
-                  {cat === 'All' ? 'All Collections' : cat === 'Suits' ? 'Exclusive Suits' : cat === 'Sarees' ? 'Heritage Sarees' : cat === 'Lehengas' ? 'Couture Lehengas' : cat === 'Kurtis' ? 'Bespoke Kurtis' : 'Premium Cord Sets'}
-                </button>
-              );
-            })}
+          {/* PREMIUM UPPER SWITCHER */}
+          <div className="flex justify-center mb-16">
+            <div className={`inline-flex items-center gap-1.5 p-1.5 rounded-full backdrop-blur-md border ${theme.divider} bg-white/5 shadow-md`}>
+              {categories.map((cat) => {
+                const isActive = activeCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => handleCategoryChange(cat)}
+                    className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-500 cursor-pointer ${isActive ? theme.pillActive : theme.pillInactive
+                      }`}
+                  >
+                    {cat === 'All' ? 'All Collections' : cat === 'Suits' ? 'Exclusive Suits' : cat === 'Sarees' ? 'Heritage Sarees' : cat === 'Lehengas' ? 'Couture Lehengas' : cat === 'Kurtis' ? 'Bespoke Kurtis' : 'Premium Cord Sets'}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* DEFAULT HEADER SECTION */}
-        <div className={`mb-16 border-b pb-8 ${theme.divider}`}>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className={`text-5xl md:text-6xl mb-4 ${theme.headingFont}`}
-          >
-            {theme.title}
-          </motion.h1>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-          >
-            <p className={`italic text-lg ${theme.accentText}`}>
-              {theme.desc}
-            </p>
-
-            <button
-              onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-              className={`lg:hidden flex items-center gap-2 px-4 py-2 rounded-full border border-current opacity-80 hover:opacity-100 transition-opacity`}
+          {/* DEFAULT HEADER SECTION */}
+          <div className={`mb-16 border-b pb-8 ${theme.divider}`}>
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className={`text-5xl md:text-6xl mb-4 ${theme.headingFont}`}
             >
-              <Filter className="w-4 h-4" />
-              <span>Filters</span>
-            </button>
-          </motion.div>
-        </div>
+              {theme.title}
+            </motion.h1>
 
-        <div className="flex flex-col lg:flex-row gap-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+            >
+              <p className={`italic text-lg ${theme.accentText}`}>
+                {theme.desc}
+              </p>
 
-          {/* SIDEBAR FILTERS */}
-          <div className={`lg:w-64 flex-shrink-0 ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}>
-            <div className="sticky top-32 space-y-10">
+              <button
+                onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+                className={`lg:hidden flex items-center gap-2 px-4 py-2 rounded-full border border-current opacity-80 hover:opacity-100 transition-opacity`}
+              >
+                <Filter className="w-4 h-4" />
+                <span>Filters</span>
+              </button>
+            </motion.div>
+          </div>
 
-              {/* Category Filter in Sidebar */}
-              <div>
-                <h3 className={`uppercase tracking-widest text-xs mb-4 font-semibold pb-2 border-b ${theme.sidebarTitle}`}>Category</h3>
-                <ul className="space-y-3">
-                  {categories.map((cat) => {
-                    const isSelected = activeCategory === cat;
-                    return (
-                      <li key={cat}>
+          <div className="flex flex-col lg:flex-row gap-12">
+
+            {/* SIDEBAR FILTERS */}
+            <div className={`lg:w-64 flex-shrink-0 ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}>
+              <div className="sticky top-32 space-y-10">
+
+                {/* Category Filter in Sidebar */}
+                <div>
+                  <h3 className={`uppercase tracking-widest text-xs mb-4 font-semibold pb-2 border-b ${theme.sidebarTitle}`}>Category</h3>
+                  <ul className="space-y-3">
+                    {categories.map((cat) => {
+                      const isSelected = activeCategory === cat;
+                      return (
+                        <li key={cat}>
+                          <button
+                            onClick={() => handleCategoryChange(cat)}
+                            className={`text-sm transition-colors text-left flex items-center gap-2 w-full cursor-pointer ${isSelected ? `${theme.accentText} font-semibold` : theme.sidebarText
+                              }`}
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? theme.sidebarDot : 'bg-transparent'}`} />
+                            {cat === 'All' ? 'All Collections' : cat}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {/* Color Filter */}
+                <div>
+                  <h3 className={`uppercase tracking-widest text-xs mb-4 font-semibold pb-2 border-b ${theme.sidebarTitle}`}>Color</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {colors.map((color) => {
+                      const isSelected = activeColor === color;
+                      return (
                         <button
-                          onClick={() => handleCategoryChange(cat)}
-                          className={`text-sm transition-colors text-left flex items-center gap-2 w-full cursor-pointer ${isSelected ? `${theme.accentText} font-semibold` : theme.sidebarText
-                            }`}
-                        >
-                          <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? theme.sidebarDot : 'bg-transparent'}`} />
-                          {cat === 'All' ? 'All Collections' : cat}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-              {/* Color Filter */}
-              <div>
-                <h3 className={`uppercase tracking-widest text-xs mb-4 font-semibold pb-2 border-b ${theme.sidebarTitle}`}>Color</h3>
-                <div className="flex flex-wrap gap-2">
-                  {colors.map((color) => {
-                    const isSelected = activeColor === color;
-                    return (
-                      <button
-                        key={color}
-                        onClick={() => setActiveColor(isSelected ? null : color)}
-                        className={`px-3 py-1.5 rounded-full text-xs transition-all border cursor-pointer ${isSelected
+                          key={color}
+                          onClick={() => setActiveColor(isSelected ? null : color)}
+                          className={`px-3 py-1.5 rounded-full text-xs transition-all border cursor-pointer ${isSelected
                             ? activeCategory === 'Sarees'
                               ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-[#D4AF37] font-semibold'
                               : 'border-[#E3A857] bg-[#E3A857]/10 text-[#E3A857] font-semibold'
                             : activeCategory === 'Lehengas'
                               ? 'border-[#3D1B20]/15 text-[#3D1B20]/60 hover:border-[#3D1B20]/30'
                               : 'border-white/10 text-white/60 hover:border-white/30'
-                          }`}
-                      >
-                        {color}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Price Filter */}
-              <div>
-                <h3 className={`uppercase tracking-widest text-xs mb-4 font-semibold pb-2 border-b ${theme.sidebarTitle}`}>Price Filter</h3>
-                <ul className="space-y-3">
-                  {priceRanges.map((range, index) => {
-                    const isSelected = activePriceRange === index;
-                    return (
-                      <li key={range.label}>
-                        <button
-                          onClick={() => setActivePriceRange(index)}
-                          className={`text-sm transition-colors text-left flex items-center gap-3 w-full cursor-pointer group`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected
-                              ? activeCategory === 'Sarees' ? 'border-[#D4AF37] bg-[#D4AF37]' : 'border-[#3D1B20] bg-[#3D1B20]'
-                              : activeCategory === 'Lehengas' ? 'border-[#3D1B20]/20 group-hover:border-[#3D1B20]' : 'border-white/20 group-hover:border-[#E89B3C]'
-                            }`}>
-                            <Check className={`w-2.5 h-2.5 ${isSelected ? 'text-white' : 'text-transparent'}`} />
-                          </div>
-                          <span className={`${isSelected ? 'font-semibold' : 'opacity-70'} ${activeCategory === 'Lehengas' ? 'text-[#3D1B20]' : 'text-white'}`}>
-                            {range.label}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-            </div>
-          </div>
-
-          {/* STANDARD PRODUCT GRID */}
-          <div className="flex-1">
-            {filteredProducts.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="text-lg opacity-60">No products found matching your current filters.</p>
-                <button
-                  onClick={() => { setActiveColor(null); setActivePriceRange(0); }}
-                  className="mt-4 px-6 py-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
-                >
-                  Clear Filters
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredProducts.map((product, index) => (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.05 }}
-                    className={`group relative overflow-hidden rounded-2xl border transition-all duration-500 ${theme.cardBg}`}
-                    style={{
-                      boxShadow: activeCategory === 'Sarees'
-                        ? '0 10px 30px rgba(0,0,0,0.4), 0 0 10px rgba(212,175,55,0.02)'
-                        : activeCategory === 'Lehengas'
-                          ? '0 10px 30px rgba(61,27,32,0.03)'
-                          : 'none'
-                    }}
-                  >
-                    <Link to={`/product/${product.id}`} className="block relative h-[420px] overflow-hidden">
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                      {/* Sparkling effect on hover for Lehengas */}
-                      {activeCategory === 'Lehengas' && (
-                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none flex items-center justify-center">
-                          <Sparkles className="w-8 h-8 text-[#E3A857] animate-pulse" />
-                        </div>
-                      )}
-
-                      {/* Product Tag */}
-                      {product.tag && (
-                        <span className={`absolute top-4 left-4 text-[10px] uppercase tracking-widest font-semibold px-3 py-1.5 rounded-full border shadow-sm ${activeCategory === 'Sarees'
-                            ? 'bg-[#0B1E13] border-[#D4AF37]/30 text-[#D4AF37]'
-                            : 'bg-white border-[#3D1B20]/15 text-[#3D1B20]'
-                          }`}>
-                          {product.tag}
-                        </span>
-                      )}
-
-                      {/* Hover Actions */}
-                      <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-                        <button className="bg-white/95 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:bg-black hover:text-white transition-colors" onClick={(e) => e.preventDefault()}>
-                          <Heart className="w-4 h-4 text-gray-800 hover:text-white" />
-                        </button>
-                      </div>
-                    </Link>
-
-                    {/* Product Info */}
-                    <div className="p-5 font-sans">
-                      <p className="opacity-50 text-[10px] uppercase tracking-wider mb-2 font-semibold">{product.category}</p>
-
-                      <Link to={`/product/${product.id}`}>
-                        <h3 className={`text-lg transition-colors duration-300 font-medium mb-1 truncate ${activeCategory === 'Sarees'
-                            ? 'font-cinzel text-white group-hover:text-[#D4AF37]'
-                            : 'text-[#3D1B20] group-hover:text-[#E3A857]'
-                          }`}>
-                          {product.name}
-                        </h3>
-                        {product.subtitle && (
-                          <p className="text-xs opacity-60 mb-2 italic">{product.subtitle}</p>
-                        )}
-                      </Link>
-
-                      <div className="flex items-center gap-1 mb-4">
-                        <Star className={`w-3.5 h-3.5 fill-current ${activeCategory === 'Sarees' ? 'text-[#D4AF37]' : 'text-[#E3A857]'}`} />
-                        <span className="text-xs font-semibold">{product.rating}</span>
-                        <span className="text-xs opacity-40">({product.reviews})</span>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t pt-4 border-current/5">
-                        <span className={`text-xl font-bold ${activeCategory === 'Sarees' ? 'text-[#D4AF37]' : 'text-[#3D1B20]'}`}>{product.price}</span>
-                        <Link
-                          to={`/product/${product.id}`}
-                          className={`flex items-center gap-2 text-xs uppercase tracking-widest font-semibold px-4 py-2.5 rounded-full transition-all duration-300 ${activeCategory === 'Sarees'
-                              ? 'bg-white/10 hover:bg-[#D4AF37] hover:text-black border border-white/15'
-                              : 'bg-[#3D1B20] text-white hover:bg-[#E3A857]'
                             }`}
                         >
-                          Show details
-                        </Link>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
+                          {color}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            {/* PAGINATION */}
-            <div className="mt-20 flex justify-center border-t border-current/5 pt-10">
-              <div className="flex items-center gap-2">
-                <button className={`w-10 h-10 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${activeCategory === 'Lehengas'
-                    ? 'border-[#3D1B20]/15 hover:bg-[#3D1B20]/5 text-[#3D1B20]'
-                    : 'border-white/20 hover:bg-white/10 text-white'
-                  }`}>
-                  1
-                </button>
-                <button className={`w-10 h-10 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${activeCategory === 'Sarees'
-                    ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-semibold'
-                    : 'bg-[#3D1B20] text-white border-[#3D1B20]'
-                  }`}>
-                  2
-                </button>
-                <span className="opacity-40 px-2">...</span>
-                <button className={`w-10 h-10 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${activeCategory === 'Lehengas'
-                    ? 'border-[#3D1B20]/15 hover:bg-[#3D1B20]/5 text-[#3D1B20]'
-                    : 'border-white/20 hover:bg-white/10 text-white'
-                  }`}>
-                  Next
-                </button>
+                {/* Price Filter */}
+                <div>
+                  <h3 className={`uppercase tracking-widest text-xs mb-4 font-semibold pb-2 border-b ${theme.sidebarTitle}`}>Price Filter</h3>
+                  <ul className="space-y-3">
+                    {priceRanges.map((range, index) => {
+                      const isSelected = activePriceRange === index;
+                      return (
+                        <li key={range.label}>
+                          <button
+                            onClick={() => setActivePriceRange(index)}
+                            className={`text-sm transition-colors text-left flex items-center gap-3 w-full cursor-pointer group`}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected
+                              ? activeCategory === 'Sarees' ? 'border-[#D4AF37] bg-[#D4AF37]' : 'border-[#3D1B20] bg-[#3D1B20]'
+                              : activeCategory === 'Lehengas' ? 'border-[#3D1B20]/20 group-hover:border-[#3D1B20]' : 'border-white/20 group-hover:border-[#E89B3C]'
+                              }`}>
+                              <Check className={`w-2.5 h-2.5 ${isSelected ? 'text-white' : 'text-transparent'}`} />
+                            </div>
+                            <span className={`${isSelected ? 'font-semibold' : 'opacity-70'} ${activeCategory === 'Lehengas' ? 'text-[#3D1B20]' : 'text-white'}`}>
+                              {range.label}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
               </div>
             </div>
-          </div>
 
+            {/* STANDARD PRODUCT GRID */}
+            <div className="flex-1">
+              {filteredProducts.length === 0 ? (
+                <div className="text-center py-20">
+                  <p className="text-lg opacity-60">No products found matching your current filters.</p>
+                  <button
+                    onClick={() => { setActiveColor(null); setActivePriceRange(0); }}
+                    className="mt-4 px-6 py-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filteredProducts.map((product, index) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.05 }}
+                      className={`group relative overflow-hidden rounded-2xl border transition-all duration-500 ${theme.cardBg}`}
+                      style={{
+                        boxShadow: activeCategory === 'Sarees'
+                          ? '0 10px 30px rgba(0,0,0,0.4), 0 0 10px rgba(212,175,55,0.02)'
+                          : activeCategory === 'Lehengas'
+                            ? '0 10px 30px rgba(61,27,32,0.03)'
+                            : 'none'
+                      }}
+                    >
+                      <Link to={`/product/${product.id}`} className="block relative h-[420px] overflow-hidden">
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                        {/* Sparkling effect on hover for Lehengas */}
+                        {activeCategory === 'Lehengas' && (
+                          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none flex items-center justify-center">
+                            <Sparkles className="w-8 h-8 text-[#E3A857] animate-pulse" />
+                          </div>
+                        )}
+
+                        {/* Product Tag */}
+                        {product.tag && (
+                          <span className={`absolute top-4 left-4 text-[10px] uppercase tracking-widest font-semibold px-3 py-1.5 rounded-full border shadow-sm ${activeCategory === 'Sarees'
+                            ? 'bg-[#0B1E13] border-[#D4AF37]/30 text-[#D4AF37]'
+                            : 'bg-white border-[#3D1B20]/15 text-[#3D1B20]'
+                            }`}>
+                            {product.tag}
+                          </span>
+                        )}
+
+                        {/* Hover Actions */}
+                        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                          <button className="bg-white/95 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:bg-black hover:text-white transition-colors" onClick={(e) => e.preventDefault()}>
+                            <Heart className="w-4 h-4 text-gray-800 hover:text-white" />
+                          </button>
+                        </div>
+                      </Link>
+
+                      {/* Product Info */}
+                      <div className="p-5 font-sans">
+                        <p className="opacity-50 text-[10px] uppercase tracking-wider mb-2 font-semibold">{product.category}</p>
+
+                        <Link to={`/product/${product.id}`}>
+                          <h3 className={`text-lg transition-colors duration-300 font-medium mb-1 truncate ${activeCategory === 'Sarees'
+                            ? 'font-cinzel text-white group-hover:text-[#D4AF37]'
+                            : 'text-[#3D1B20] group-hover:text-[#E3A857]'
+                            }`}>
+                            {product.name}
+                          </h3>
+                          {product.subtitle && (
+                            <p className="text-xs opacity-60 mb-2 italic">{product.subtitle}</p>
+                          )}
+                        </Link>
+
+                        <div className="flex items-center gap-1 mb-4">
+                          <Star className={`w-3.5 h-3.5 fill-current ${activeCategory === 'Sarees' ? 'text-[#D4AF37]' : 'text-[#E3A857]'}`} />
+                          <span className="text-xs font-semibold">{product.rating}</span>
+                          <span className="text-xs opacity-40">({product.reviews})</span>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t pt-4 border-current/5">
+                          <span className={`text-xl font-bold ${activeCategory === 'Sarees' ? 'text-[#D4AF37]' : 'text-[#3D1B20]'}`}>{product.price}</span>
+                          <Link
+                            to={`/product/${product.id}`}
+                            className={`flex items-center gap-2 text-xs uppercase tracking-widest font-semibold px-4 py-2.5 rounded-full transition-all duration-300 ${activeCategory === 'Sarees'
+                              ? 'bg-white/10 hover:bg-[#D4AF37] hover:text-black border border-white/15'
+                              : 'bg-[#3D1B20] text-white hover:bg-[#E3A857]'
+                              }`}
+                          >
+                            Show details
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* PAGINATION */}
+              <div className="mt-20 flex justify-center border-t border-current/5 pt-10">
+                <div className="flex items-center gap-2">
+                  <button className={`w-10 h-10 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${activeCategory === 'Lehengas'
+                    ? 'border-[#3D1B20]/15 hover:bg-[#3D1B20]/5 text-[#3D1B20]'
+                    : 'border-white/20 hover:bg-white/10 text-white'
+                    }`}>
+                    1
+                  </button>
+                  <button className={`w-10 h-10 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${activeCategory === 'Sarees'
+                    ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-semibold'
+                    : 'bg-[#3D1B20] text-white border-[#3D1B20]'
+                    }`}>
+                    2
+                  </button>
+                  <span className="opacity-40 px-2">...</span>
+                  <button className={`w-10 h-10 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${activeCategory === 'Lehengas'
+                    ? 'border-[#3D1B20]/15 hover:bg-[#3D1B20]/5 text-[#3D1B20]'
+                    : 'border-white/20 hover:bg-white/10 text-white'
+                    }`}>
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
-      </div>
       </div>
       <Footer isIvoryTheme={activeCategory === 'Lehengas'} />
     </div>

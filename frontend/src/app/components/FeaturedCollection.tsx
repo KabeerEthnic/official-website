@@ -112,9 +112,8 @@ function ProductColumn({ products, columnIndex }: { products: typeof productsCol
       <button
         onClick={() => scroll('up')}
         disabled={!canScrollUp}
-        className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white shadow-2xl p-3 rounded-full hover:bg-[#531323] hover:text-white transition-all duration-300 ${
-          !canScrollUp ? 'opacity-0 pointer-events-none' : 'opacity-100'
-        }`}
+        className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white shadow-2xl p-3 rounded-full hover:bg-[#531323] hover:text-white transition-all duration-300 ${!canScrollUp ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
         aria-label="Scroll up"
       >
         <ChevronUp className="w-5 h-5" />
@@ -175,11 +174,10 @@ function ProductColumn({ products, columnIndex }: { products: typeof productsCol
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-4 h-4 ${
-                          i < Math.floor(product.rating)
+                        className={`w-4 h-4 ${i < Math.floor(product.rating)
                             ? 'fill-[#E89B3C] text-[#E89B3C]'
                             : 'fill-gray-200 text-gray-200'
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
@@ -202,9 +200,8 @@ function ProductColumn({ products, columnIndex }: { products: typeof productsCol
       <button
         onClick={() => scroll('down')}
         disabled={!canScrollDown}
-        className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-20 bg-white shadow-2xl p-3 rounded-full hover:bg-[#531323] hover:text-white transition-all duration-300 ${
-          !canScrollDown ? 'opacity-0 pointer-events-none' : 'opacity-100'
-        }`}
+        className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-20 bg-white shadow-2xl p-3 rounded-full hover:bg-[#531323] hover:text-white transition-all duration-300 ${!canScrollDown ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
         aria-label="Scroll down"
       >
         <ChevronDown className="w-5 h-5" />

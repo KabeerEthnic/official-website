@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 const TAGLINES = [
   "Kabeer — The Ethnic Store",
@@ -25,7 +25,7 @@ export function Footer({ isIvoryTheme = false }: FooterProps) {
 
   const bgColor = isIvoryTheme ? 'bg-[#FAF8F5]' : 'bg-gradient-to-b from-[#0A1C14] to-[#060F0A]';
   const textColor = isIvoryTheme ? 'text-[#2D2A26]' : 'text-gray-300';
-  const accentColor = isIvoryTheme ? 'text-[#8C7E7A]' : 'text-[#E89B3C]';
+  const accentColor = isIvoryTheme ? 'text-[#8C7E7A]' : 'text-[#51424c]';
   const dividerColor = isIvoryTheme ? 'border-[#2D2A26]/10' : 'border-gray-800';
 
   return (
@@ -36,7 +36,7 @@ export function Footer({ isIvoryTheme = false }: FooterProps) {
           {isIvoryTheme ? (
             <span>Kabeer <span className="font-semibold">Boutique</span></span>
           ) : (
-            <span>Kabeer <span className="text-[#E89B3C] font-normal">The Ethnic Store</span></span>
+            <span>Kabeer <span className="text-[#51424c] font-normal">The Ethnic Store</span></span>
           )}
         </h3>
 

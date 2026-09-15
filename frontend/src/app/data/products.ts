@@ -118,122 +118,115 @@ export const products: Product[] = [
     ]
   },
 
-  // SAREES (Royal Emerald/Burgundy/Gold)
+  // BAGS & TOTE BAGS (Tote Bags, Royal Zardozi Clutches & Velvet Potlis)
   {
     id: 1,
-    name: 'Royal Silk Saree',
-    subtitle: 'Crimson Heritage Drape',
-    price: '₹12,999',
-    priceNum: 12999,
+    name: 'MEENAKARI BRASS TOTE',
+    subtitle: 'Antique Brass Handle Velvet Tote',
+    price: '₹6,499',
+    priceNum: 6499,
     images: [
-      'https://images.unsplash.com/photo-1769275061088-85697a30ee50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
-      'https://images.unsplash.com/photo-1610030470298-4086411542a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
+      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
+      'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
     ],
     rating: 4.8,
-    reviews: 234,
-    category: 'Sarees',
-    color: 'Red',
-    tag: 'HERITAGE',
-    description: 'Experience the epitome of elegance with this hand-woven Royal Silk Saree. Crafted by master artisans over 120 hours, it features intricate gold zari work that catches the light beautifully. Perfect for weddings, festivals, and preserving heritage.',
+    reviews: 156,
+    category: 'Bags',
+    color: 'Maroon',
+    tag: 'ROYAL TOTE',
+    description: 'A majestic deep burgundy velvet tote bag topped with hand-engraved solid brass handles depicting traditional Indian peacock motifs. Designed for luxury enthusiasts who appreciate artisanal brassware and spacious everyday elegance.',
     details: [
-      { name: 'Fabric', value: '100% Pure Banarasi Silk' },
-      { name: 'Pattern', value: 'Woven Zari Work' },
-      { name: 'Care', value: 'Dry Clean Only' },
-      { name: 'Origin', value: 'Varanasi, India' }
+      { name: 'Body', value: '9000 Micro Velvet' },
+      { name: 'Handles', value: '100% Solid Brass Hand Engraved' },
+      { name: 'Interior', value: 'Zippered Compartments & Card Slots' }
     ]
   },
   {
     id: 2,
-    name: 'Banarasi Elegance Saree',
-    subtitle: 'Pure Zari Weave',
-    price: '₹15,499',
-    priceNum: 15499,
+    name: 'ROYAL EMBROIDERED SILK TOTE',
+    subtitle: 'Crimson Heritage Raw Silk Tote',
+    price: '₹5,299',
+    priceNum: 5299,
     images: [
-      'https://images.unsplash.com/photo-1610030470298-4086411542a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
-      'https://images.unsplash.com/photo-1769275061088-85697a30ee50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
+      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
+      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
     ],
-    rating: 5.0,
-    reviews: 189,
-    category: 'Sarees',
-    color: 'Gold',
-    tag: 'ROYAL SELECTION',
-    description: 'A stunning majestic gold and emerald green Banarasi saree that showcases the true artistry of Varanasi weaving. Features a grand pallu and detailed geometric borders in golden zari.',
+    rating: 4.9,
+    reviews: 234,
+    category: 'Bags',
+    color: 'Red',
+    tag: 'BESTSELLER TOTE',
+    description: 'An elegant raw silk tote featuring intricate gold threadwork along the border, reinforced leatherette handles, and spacious compartments for tablet, cosmetics, and day-to-night essentials.',
     details: [
-      { name: 'Fabric', value: 'Katan Silk' },
-      { name: 'Zari Type', value: 'Pure Gold Tested Zari' },
-      { name: 'Weave Type', value: 'Kadhwa Handloom Weave' },
-      { name: 'Care', value: 'Dry Clean Only' }
+      { name: 'Material', value: '100% Chanderi Raw Silk & Vegan Leather' },
+      { name: 'Work', value: 'Golden Zari & Marodi Threadwork' },
+      { name: 'Handles', value: 'Double Shoulder Strap' }
     ]
   },
   {
     id: 3,
-    name: 'Chanderi Drape Saree',
-    subtitle: 'Traditional Pastel Drape',
-    price: '₹9,999',
-    priceNum: 9999,
+    name: 'CHANDERI MIRRORWORK TOTE',
+    subtitle: 'Champagne Gold Mirrorwork Canvas Tote',
+    price: '₹4,499',
+    priceNum: 4499,
     images: [
-      'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
-      'https://images.unsplash.com/photo-1769275061088-85697a30ee50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
+      'https://images.unsplash.com/photo-1594223274512-ad480274d954?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
+      'https://images.unsplash.com/photo-1614179689702-355944cd0918?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
     ],
-    rating: 4.6,
-    reviews: 156,
-    category: 'Sarees',
-    color: 'Pink',
-    tag: 'CLASSIC',
-    description: 'A lightweight and breathable Chanderi saree featuring signature floral buttis and a translucent body. Beautifully balances modern pastel colors with classic weaving heritage.',
+    rating: 4.7,
+    reviews: 142,
+    category: 'Bags',
+    color: 'Gold',
+    tag: 'LIMITED EDITION',
+    description: 'A dazzling champagne gold structured tote bag embellished with real glass mirrorwork and gota patti trim. Lightweight, sturdy, and highly reflective under event lighting.',
     details: [
-      { name: 'Fabric', value: 'Chanderi Silk-Cotton Blend' },
-      { name: 'Texture', value: 'Translucent & Lightweight' },
-      { name: 'Butti Style', value: 'Zari Meenakari Motifs' },
-      { name: 'Include', value: 'Running Blouse Piece' }
+      { name: 'Base', value: 'Metallic Woven Tissue Canvas' },
+      { name: 'Work', value: 'Real Mirror Work & Gota Patti' },
+      { name: 'Strap', value: 'Reinforced Shoulder Straps' }
     ]
   },
-
-  // LEHENGAS (Champagne Rose Pink/Glamour)
   {
     id: 5,
-    name: 'Romantic Rose Gold Lehenga',
-    subtitle: 'Luxury Bridal Ensemble',
-    price: '₹25,999',
-    priceNum: 25999,
+    name: 'NOOR MINAUDIÈRE CLUTCH',
+    subtitle: 'Rose Gold Pearl Box Clutch',
+    price: '₹4,999',
+    priceNum: 4999,
     images: [
-      'https://images.unsplash.com/photo-1767955694884-d4bf352c23c2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
-      'https://images.unsplash.com/photo-1595777457583-95e059d581b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
+      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
+      'https://images.unsplash.com/photo-1614179689702-355944cd0918?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
     ],
     rating: 5.0,
-    reviews: 412,
-    category: 'Lehengas',
+    reviews: 189,
+    category: 'Bags',
     color: 'Pink',
-    tag: 'COUTURE BRIDAL',
-    description: 'An absolute dream in romantic rose-gold, designed for the modern bride. Features a fully hand-embroidered flared lehenga skirt with shimmering sequins, glass beads, and delicate floral threadwork.',
+    tag: 'BRIDAL FAVOURITE',
+    description: 'A showstopping hard-case box clutch encased in blush rose-gold metallic casing with hand-set crystal floral studs. Includes a detachable antique sling chain.',
     details: [
-      { name: 'Fabric', value: 'Premium Silk Net and Crepe Lining' },
-      { name: 'Work', value: 'Hand-sewn Sequins & Swarovski Crystals' },
-      { name: 'Flair', value: '4.5 Meters (Double Can-can included)' },
-      { name: 'Customization', value: 'Semi-stitched set' }
+      { name: 'Shell', value: 'Hard Frame with Velvet Lining' },
+      { name: 'Stones', value: 'Swarovski Crystals & Mother of Pearl' },
+      { name: 'Chain', value: 'Detachable 24K Gold Plated Chain' }
     ]
   },
   {
     id: 6,
-    name: 'Champagne Bridal Lehenga',
-    subtitle: 'Majestic Royal Velvet',
-    price: '₹32,999',
-    priceNum: 32999,
+    name: 'ROYAL ZARDOZI POTLI',
+    subtitle: 'Emerald Pearl Tassel Potli',
+    price: '₹3,499',
+    priceNum: 3499,
     images: [
-      'https://images.unsplash.com/photo-1595777457583-95e059d581b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
-      'https://images.unsplash.com/photo-1767955694884-d4bf352c23c2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
+      'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
+      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
     ],
     rating: 4.9,
-    reviews: 567,
-    category: 'Lehengas',
-    color: 'Maroon',
-    tag: 'GLAMOUR',
-    description: 'A heavy luxury bridal lehenga crafted in deep maroon royal velvet. Shines under event lighting with intricate golden zardozi embroidery depicting traditional court motifs.',
+    reviews: 210,
+    category: 'Bags',
+    color: 'Green',
+    tag: 'HERITAGE',
+    description: 'An enchanting royal emerald green silk velvet potli bag featuring hand-stitched Zardozi motifs, heavy pearl latkans, and 24K gold drawstring tassels.',
     details: [
-      { name: 'Fabric', value: 'Micro Velvet 9000' },
-      { name: 'Embroidery', value: 'Traditional Royal Zardozi' },
-      { name: 'Dupatta 1', value: 'Deep Maroon Velvet with border' },
-      { name: 'Dupatta 2', value: 'Blush Peach Net Dupatta for head draping' }
+      { name: 'Material', value: 'Plush Silk Velvet & Pure Raw Silk Lining' },
+      { name: 'Embroidery', value: 'Hand Zardozi & Dabka Work' },
+      { name: 'Hardware', value: 'Antique Gold Pearl Drawstring Tassels' }
     ]
   },
   // KURTIS (Premium Handcrafted Everyday Luxury)

@@ -19,7 +19,7 @@ export function Header() {
     };
   }, [isMenuOpen]);
 
-  const navLinks = ['Sarees', 'Lehengas', 'Suits', 'Kurtis', 'Cord Sets'];
+  const navLinks = ['Tote Bags', 'Suits', 'Kurtis', 'Cord Sets'];
 
   return (
     <>
@@ -116,7 +116,7 @@ export function Header() {
                   >
                     Navigation
                   </motion.p>
-                  
+
                   {/* Shop All Link */}
                   <motion.div
                     initial={{ opacity: 0, x: 30 }}

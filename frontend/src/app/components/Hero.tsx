@@ -9,9 +9,9 @@ export function Hero() {
           src="https://www.westside.com/cdn/shop/articles/eid_ethnic_wear_for_women.jpg?v=1650963225"
           alt="Indian ethnic wear"
           className="w-full h-full object-cover"
+          style={{ objectPosition: '50% 15%' }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#531323]/60 via-[#531323]/35 to-[#531323]/4
-        0"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#531323]/60 via-[#531323]/35 to-[#531323]/40"></div>
       </div>
 
       {/* Bottom fade: maroon → dark green (seamless merge) */}
