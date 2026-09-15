@@ -3,6 +3,7 @@ export interface Product {
   name: string;
   subtitle: string;
   price: string;
+  originalPrice?: string;
   priceNum: number;
   images: string[];
   rating: number;
@@ -124,6 +125,7 @@ export const products: Product[] = [
     name: 'MEENAKARI BRASS TOTE',
     subtitle: 'Antique Brass Handle Velvet Tote',
     price: '₹6,499',
+    originalPrice: '₹8,999',
     priceNum: 6499,
     images: [
       'https://images.unsplash.com/photo-1584917865442-de89df76afd3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
@@ -143,10 +145,11 @@ export const products: Product[] = [
   },
   {
     id: 2,
-    name: 'ROYAL EMBROIDERED SILK TOTE',
-    subtitle: 'Crimson Heritage Raw Silk Tote',
-    price: '₹5,299',
-    priceNum: 5299,
+    name: 'GULABI',
+    subtitle: 'BLOCK PRINT TOTE',
+    price: '₹1,450',
+    originalPrice: '₹2,100',
+    priceNum: 1450,
     images: [
       'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
       'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
@@ -155,7 +158,7 @@ export const products: Product[] = [
     reviews: 234,
     category: 'Bags',
     color: 'Red',
-    tag: 'BESTSELLER TOTE',
+    tag: 'BESTSELLER',
     description: 'An elegant raw silk tote featuring intricate gold threadwork along the border, reinforced leatherette handles, and spacious compartments for tablet, cosmetics, and day-to-night essentials.',
     details: [
       { name: 'Material', value: '100% Chanderi Raw Silk & Vegan Leather' },
@@ -165,10 +168,11 @@ export const products: Product[] = [
   },
   {
     id: 3,
-    name: 'CHANDERI MIRRORWORK TOTE',
-    subtitle: 'Champagne Gold Mirrorwork Canvas Tote',
-    price: '₹4,499',
-    priceNum: 4499,
+    name: 'NOOR',
+    subtitle: 'ZARI EMBROIDERED TOTE',
+    price: '₹1,890',
+    originalPrice: '₹2,600',
+    priceNum: 1890,
     images: [
       'https://images.unsplash.com/photo-1594223274512-ad480274d954?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
       'https://images.unsplash.com/photo-1614179689702-355944cd0918?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
@@ -177,7 +181,7 @@ export const products: Product[] = [
     reviews: 142,
     category: 'Bags',
     color: 'Gold',
-    tag: 'LIMITED EDITION',
+    tag: 'NEW',
     description: 'A dazzling champagne gold structured tote bag embellished with real glass mirrorwork and gota patti trim. Lightweight, sturdy, and highly reflective under event lighting.',
     details: [
       { name: 'Base', value: 'Metallic Woven Tissue Canvas' },
@@ -186,10 +190,33 @@ export const products: Product[] = [
     ]
   },
   {
+    id: 4,
+    name: 'RANI',
+    subtitle: 'AJRAKH PRINT TOTE',
+    price: '₹1,650',
+    originalPrice: '₹2,200',
+    priceNum: 1650,
+    images: [
+      'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
+      'https://images.unsplash.com/photo-1614179689702-355944cd0918?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600'
+    ],
+    rating: 4.8,
+    reviews: 178,
+    category: 'Bags',
+    color: 'Multicolor',
+    tag: 'POPULAR',
+    description: 'Authentic hand-blocked Ajrakh printed cotton tote with embroidered borders, tassel charm, and durable cotton web straps.',
+    details: [
+      { name: 'Fabric', value: '100% Handblock Ajrakh Cotton' },
+      { name: 'Craft', value: 'Natural Indigo & Madder Dyes' }
+    ]
+  },
+  {
     id: 5,
     name: 'NOOR MINAUDIÈRE CLUTCH',
     subtitle: 'Rose Gold Pearl Box Clutch',
     price: '₹4,999',
+    originalPrice: '₹6,500',
     priceNum: 4999,
     images: [
       'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',
@@ -212,6 +239,7 @@ export const products: Product[] = [
     name: 'ROYAL ZARDOZI POTLI',
     subtitle: 'Emerald Pearl Tassel Potli',
     price: '₹3,499',
+    originalPrice: '₹4,500',
     priceNum: 3499,
     images: [
       'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1000',

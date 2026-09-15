@@ -920,7 +920,7 @@ export function Shop() {
 
   if (activeCategory === 'Bags') {
     return (
-      <div className="w-full min-h-screen bg-[#FAF8F5] text-[#2D2A26] relative select-none pt-20">
+      <div className="w-full min-h-screen bg-[#FAF8F5] text-[#2D2A26] relative select-none">
         <BagsSection />
         <Footer isIvoryTheme={true} />
       </div>
