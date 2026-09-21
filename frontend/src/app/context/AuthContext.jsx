@@ -45,12 +45,6 @@ export function AuthProvider({ children }) {
     return signedIn;
   }, []);
 
-  const register = useCallback(async (details) => {
-    const created = await auth.register(details);
-    setUser(created);
-    return created;
-  }, []);
-
   const logout = useCallback(async () => {
     try {
       await auth.logout();
@@ -66,11 +60,10 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(user),
       isAdmin: user?.role === 'ADMIN',
       login,
-      register,
       logout,
       setUser,
     }),
-    [user, loading, login, register, logout],
+    [user, loading, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

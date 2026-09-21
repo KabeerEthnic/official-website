@@ -43,6 +43,9 @@ backend/src/app.js.
         Do not share the development database. A stray `db:seed --force` or a
         test order must never be able to touch real customer data.
   [ ] Razorpay LIVE keys (KYC completed and account activated)
+  [ ] Resend account with the production sending domain verified, including
+      SPF, DKIM and DMARC (section 7b). Account verification codes go through
+      it, so an unverified domain means no new customers.
   [ ] A domain you control, for api.yourdomain.com
   [ ] A fresh production AUTH_SECRET — NOT the development one:
         node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
@@ -157,6 +160,23 @@ backend/src/app.js.
     SUPABASE_SECRET_KEY        sb_secret_...        (see 7)
     SUPABASE_STORAGE_BUCKET    product-media
 
+  ---- email — REQUIRED -------------------------------------------------------
+
+    RESEND_API_KEY             re_...               (see 7b)
+    EMAIL_FROM                 Kabeer <orders@kabeertheethnicstore.com>
+    EMAIL_REPLY_TO             support@kabeertheethnicstore.com
+    OTP_TTL_MINUTES            10                   (default)
+    OTP_MAX_ATTEMPTS           5                    (default)
+
+  This is not optional in production. A new customer receives a six-digit code
+  and cannot sign in until they enter it, so an unset RESEND_API_KEY means no
+  new customers at all. It also breaks password reset and silently drops order
+  and payment receipts.
+
+  EMAIL_FROM must be an address on a domain verified in Resend -> Domains, with
+  the SPF and DKIM records Resend gives you published in your DNS. Sending from
+  an unverified domain is rejected outright; sending without DKIM lands in spam.
+
   ---- payments — LIVE credentials --------------------------------------------
 
     RAZORPAY_KEY_ID            rzp_live_...
@@ -264,14 +284,66 @@ backend/src/app.js.
 
 
 -------------------------------------------------------------------------------
+ 7b. RESEND (TRANSACTIONAL EMAIL)
+-------------------------------------------------------------------------------
+
+  Six kinds of mail leave the API: account verification codes, password reset
+  codes, order confirmations, payment confirmations, issue acknowledgements and
+  support replies. All go through Resend's REST API over fetch — no SDK.
+
+  In production this is load-bearing. No key means no new customers.
+
+  1. Domain verification is the part that takes time, so do it first.
+     Resend -> Domains -> Add Domain -> kabeertheethnicstore.com. Publish the
+     records Resend gives you in your DNS:
+
+         MX     send                feedback-smtp.<region>.amazonses.com
+         TXT    send                v=spf1 include:amazonses.com ~all
+         TXT    resend._domainkey   p=...        (DKIM)
+
+     In Cloudflare DNS every one of these must be "DNS only" (grey cloud).
+     Proxying a mail record breaks delivery without any visible error.
+
+     Also publish a DMARC record once SPF and DKIM verify — without one, Gmail
+     and Yahoo increasingly refuse bulk senders outright:
+
+         TXT    _dmarc    v=DMARC1; p=none; rua=mailto:dmarc@your-domain.com
+
+  2. Use a separate API key from the development deployment: Resend -> API Keys
+     -> Create API Key, "Sending access", named for this environment. Separate
+     keys mean you can revoke one without taking the other down, and the Resend
+     logs tell you which environment sent what.
+
+  3. Set EMAIL_FROM to an address on the verified domain
+     (Kabeer <orders@kabeertheethnicstore.com>) and EMAIL_REPLY_TO to a mailbox
+     somebody actually reads — customers do reply to order confirmations.
+
+  4. Watch the free tier's limits: 3,000 emails a month, 100 a day. One order
+     sends up to three mails (confirmation, payment, plus any support reply),
+     and every sign-up sends one. Move to a paid plan before a sale, not during.
+
+  Verify after deploying: register a throwaway account on the live storefront
+  and confirm the code arrives, then place a test order and confirm both the
+  order and payment mails arrive. Resend -> Logs shows every attempt with its
+  delivery status; Railway -> Deployments -> Logs shows the API's side.
+
+
+-------------------------------------------------------------------------------
  8. CORS
 -------------------------------------------------------------------------------
 
     CORS_ORIGINS = https://kabeer.com,https://www.kabeer.com
 
-  Exact browser origins, comma separated: scheme + host + port, no trailing
-  slash, no wildcards. Include the www variant only if you actually serve it
-  rather than redirecting it.
+  Browser origins, comma separated: scheme + host + port. No wildcards.
+
+  FRONTEND_URL (section 9) is ALWAYS allowed automatically, so CORS_ORIGINS is
+  only for ADDITIONAL origins. With a single storefront address, FRONTEND_URL
+  alone is sufficient.
+
+  A trailing slash or path is stripped automatically — an origin has neither.
+  But www and the apex ARE different origins to a browser. Decide which is
+  canonical, redirect the other to it, and then only the canonical one needs
+  listing. Serving both without a redirect also splits your SEO.
 
   This list backs both @fastify/cors and the CSRF guard in
   backend/src/middleware/csrf.js, which rejects any state-changing request whose
@@ -458,6 +530,17 @@ backend/src/app.js.
 
   8) Overselling guard: set a product's stock to 1 and try to buy it from two
      browsers at once. One succeeds, the other is told it is gone.
+
+  9) Email, end to end. Register a throwaway account on the live storefront and
+     confirm the six-digit code arrives; the account cannot sign in until it
+     does, so this is a launch blocker, not a nicety. Then confirm the order
+     and payment confirmations from step 7 arrived, and that a reply sent from
+     Governance -> Issue desk reaches the customer. Resend -> Logs shows the
+     delivery status of every one.
+
+ 10) Governance guards hold. In /admin -> Governance -> Administrators, confirm
+     your own row offers no actions, and that the audit log already lists the
+     changes you made while setting the store up.
 
 
 -------------------------------------------------------------------------------

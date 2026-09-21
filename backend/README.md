@@ -90,7 +90,12 @@ All responses share one envelope:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/auth/register` · `/api/auth/login` | Create a session cookie |
+| `POST` | `/api/auth/register` | Create the account and email a code — **no session yet** |
+| `POST` | `/api/auth/verify-email` | Consume the code; this is what signs a new account in |
+| `POST` | `/api/auth/resend-verification` | Another code, subject to the 60-second cooldown |
+| `POST` | `/api/auth/login` | Create a session cookie; `403 EMAIL_UNVERIFIED` until verified |
+| `POST` | `/api/auth/forgot-password` | Email a reset code. Same reply whether or not the account exists |
+| `POST` | `/api/auth/reset-password` | Consume the code, set the password, revoke every session |
 | `POST` | `/api/auth/logout` | Revoke the session |
 | `GET` · `PATCH` | `/api/auth/me` | Read / update the profile |
 | `POST` | `/api/auth/me/password` | Change password, sign out other devices |
@@ -107,12 +112,31 @@ All responses share one envelope:
 | `GET`/`POST`/`PATCH`/`DELETE` | `/api/users/addresses…` | Address book |
 | `GET`/`POST`/`DELETE` | `/api/users/wishlist…` | Wishlist |
 | `POST`/`PATCH`/`DELETE` | `/api/reviews…` | Write / edit / delete own review |
+| `GET` · `POST` | `/api/support/tickets` | Own issues · raise one (rate limited, sends mail) |
+| `GET` | `/api/support/tickets/:id` | One thread — scoped to the owner |
+| `POST` | `/api/support/tickets/:id/replies` | Reply on own thread |
 
 ### Admin (requires `role = ADMIN`)
 
 `/api/admin/dashboard`, `/api/admin/products…`, `/api/admin/categories…`,
 `/api/admin/orders…`, `/api/admin/customers…`, `/api/admin/reviews…`,
 `/api/admin/coupons…`, `/api/admin/content/…`, `/api/admin/media`.
+
+Governance sits under `/api/admin/governance`:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/summary` | Counters for the landing page |
+| `GET` | `/tickets` · `/tickets/:id` | Issue desk, oldest waiting first |
+| `POST` | `/tickets/:id/replies` | Reply; emails the customer, marks it answered |
+| `PATCH` | `/tickets/:id/status` | Open / Answered / Resolved / Closed |
+| `GET` | `/audit` · `/audit/actions` | The trail, and the action names to filter by |
+| `GET` · `POST` | `/admins` | List · invite (promote or create with an emailed code) |
+| `POST` | `/admins/:id/sign-out` · `/admins/:id/revoke` | Drop their sessions · demote to customer |
+| `DELETE` | `/admins/:id` | Delete outright; refused when the account has orders |
+
+The audit log has no write route by design — entries are created as a side
+effect of the actions they describe, and nothing can edit or remove them.
 
 ### Webhooks
 
@@ -201,6 +225,13 @@ addresses are registered.
 Public catalogue reads attach no auth hook at all, so they never pay for a
 session lookup. Suspending an account revokes its sessions immediately rather
 than waiting for the cookie to expire.
+
+**Email verification.** `registerUser` creates the account with
+`emailVerifiedAt = null` and no session; `authenticateUser` checks the password
+first and only then refuses with `403 EMAIL_UNVERIFIED`, so the gate cannot be
+used to discover which addresses are registered. Codes live in `EmailOtp`,
+stored as `HMAC-SHA256(email:purpose:code, AUTH_SECRET)` and compared in
+constant time — see `services/otp.service.js` for the full set of rules.
 
 **CSRF.** The API is cookie-authenticated, so `middleware/csrf.js` rejects any
 state-changing request whose `Origin` is not an allowed storefront. Browsers
@@ -319,9 +350,13 @@ expensive:
   checkout and webhook signature verification.
 - **cms** — every section type is editable, the seed's content validates, seeded
   products have unique SKUs, images, and stock within their batch size.
-- **api** — routing, 401 on every admin and customer route, CSRF rejection of a
-  foreign origin, field-level validation errors, body-size limits, webhook
-  signature rejection.
+- **api** — routing, 401 on every admin, customer and support route, CSRF
+  rejection of a foreign origin, field-level validation errors, body-size
+  limits, webhook signature rejection.
+- **otp** — six digits, hashed at rest, single use, bound to address and
+  purpose, expiry, attempt cap, supersession, resend cooldown; plus the
+  sign-in gate for an unverified account. Prisma is swapped for an in-memory
+  double, so this still needs no database.
 
 Anything that needs real rows (checkout, inventory races, webhook replay) is
 exercised against a database — see the root README's production checklist.

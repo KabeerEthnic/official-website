@@ -18,7 +18,11 @@ export async function createPaymentSession(request, reply) {
 
 export async function verifyPayment(request, reply) {
   const input = parse(verifyPaymentSchema, request.body);
-  const order = await verifyCheckoutPayment({ ...input, user: request.user });
+  const order = await verifyCheckoutPayment({
+    ...input,
+    user: request.user,
+    logger: request.log,
+  });
 
   return reply.send({ data: serializeOrder(order) });
 }
@@ -32,6 +36,7 @@ export async function razorpayWebhook(request, reply) {
     rawBody: request.rawBody,
     signature: request.headers['x-razorpay-signature'],
     eventId: request.headers['x-razorpay-event-id'],
+    logger: request.log,
   });
 
   return reply.send(result);

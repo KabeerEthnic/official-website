@@ -3,6 +3,7 @@ import prisma from '../../lib/prisma.js';
 import { serializeAddress, serializeOrder, serializeUser } from '../../lib/serialize.js';
 import { adminCustomerQuerySchema, updateCustomerSchema } from '../../validators/commerce.validator.js';
 import { parse } from '../../validators/common.js';
+import { record } from '../../services/audit.service.js';
 
 export async function listCustomers(request, reply) {
   const filters = parse(adminCustomerQuerySchema, request.query);
@@ -80,6 +81,13 @@ export async function patchCustomer(request, reply) {
       data: { revokedAt: new Date() },
     });
   }
+
+  await record(request, {
+    action: status === 'SUSPENDED' ? 'customer.suspended' : 'customer.reactivated',
+    entityType: 'User',
+    entityId: user.id,
+    summary: `${status === 'SUSPENDED' ? 'Suspended' : 'Reactivated'} the account ${user.email}`,
+  });
 
   return reply.send({ data: serializeUser(user) });
 }

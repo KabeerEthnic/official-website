@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Package, Heart, MapPin, User, LogOut, ChevronRight } from 'lucide-react';
+import { Package, Heart, LifeBuoy, MapPin, User, LogOut, ChevronRight } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { orders as ordersApi } from '../../lib/api/index.js';
@@ -227,6 +227,11 @@ export function Account() {
                     {item.label}
                   </button>
                 ))}
+
+                <Link to="/support" className="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/5 hover:text-white transition-all text-left">
+                  <LifeBuoy className="w-5 h-5" />
+                  Help &amp; Support
+                </Link>
 
                 {user?.role === 'ADMIN' ? (
                   <Link to="/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:bg-white/5 hover:text-white transition-all text-left">

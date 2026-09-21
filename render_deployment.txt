@@ -35,6 +35,8 @@ the /health route in backend/src/app.js.
   [ ] A 48-byte random AUTH_SECRET. Generate one:
         node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
   [ ] Razorpay TEST keys if you want to exercise checkout (optional)
+  [ ] Resend account + a verified sending domain (section 7b). Not optional:
+      without it a new account cannot be verified, so nobody can sign in.
 
   IMPORTANT — Supabase region. Every API request makes several database round
   trips, so pick a Supabase region near your users. Measured from India:
@@ -145,6 +147,22 @@ the /health route in backend/src/app.js.
     SUPABASE_SECRET_KEY        sb_secret_...     (see 7)
     SUPABASE_STORAGE_BUCKET    product-media
 
+  ---- email (REQUIRED — nobody can register without it) ----------------------
+
+    RESEND_API_KEY             re_...            (see 7b)
+    EMAIL_FROM                 Kabeer <orders@kabeertheethnicstore.com>
+    EMAIL_REPLY_TO             support@kabeertheethnicstore.com
+    OTP_TTL_MINUTES            10                (optional, this is the default)
+    OTP_MAX_ATTEMPTS           5                 (optional, this is the default)
+
+  Registration emails a six-digit code and the account cannot sign in until the
+  code is entered, so with RESEND_API_KEY unset sign-up is a dead end. Password
+  reset stops working too, and order/payment receipts are silently skipped.
+
+  EMAIL_FROM must be on a domain verified in Resend -> Domains. Resend rejects
+  anything else. On the free plan you may only send to your own address until a
+  domain is verified — verify the domain before you open the shop.
+
   ---- payments (optional; checkout reports clearly when absent) ---------------
 
     RAZORPAY_KEY_ID            rzp_test_...
@@ -165,14 +183,23 @@ the /health route in backend/src/app.js.
     MAX_BODY_BYTES             1048576
     COOKIE_DOMAIN              leave unset (the two domains are unrelated)
 
-  ---- seeding only (see 11) ---------------------------------------------------
+  ---- DO NOT SET THESE ON RENDER ---------------------------------------------
 
-    SEED_ADMIN_EMAIL           you@example.com
-    SEED_ADMIN_PASSWORD        a strong password, at least 10 characters
-    SEED_ADMIN_NAME            Store Owner
+    SEED_ADMIN_EMAIL
+    SEED_ADMIN_PASSWORD
+    SEED_ADMIN_NAME
+        Read ONLY by `npm run db:seed`, which Render never runs — seeding is a
+        manual, local step (section 11). If you have already seeded from your
+        machine, the admin account exists in the database and nothing more is
+        needed. Putting the password here would leave a credential sitting in
+        the environment for no purpose.
 
-  Never set SUPABASE_SERVICE_ROLE_KEY unless the Supabase project still uses
-  legacy keys. It is accepted as a deprecated fallback and logs a warning.
+    SUPABASE_SERVICE_ROLE_KEY
+        Deprecated legacy key. Use SUPABASE_SECRET_KEY. It is accepted as a
+        fallback and logs a warning at boot.
+
+    PORT
+        Render injects it. Setting it yourself breaks the deploy.
 
 
 -------------------------------------------------------------------------------
@@ -248,19 +275,82 @@ the /health route in backend/src/app.js.
 
 
 -------------------------------------------------------------------------------
+ 7b. RESEND (TRANSACTIONAL EMAIL)
+-------------------------------------------------------------------------------
+
+  The API sends six kinds of mail: an account verification code, a password
+  reset code, an order confirmation, a payment confirmation, an issue
+  acknowledgement and a support reply. All of them go through Resend's REST API
+  over plain fetch — there is no SDK to install.
+
+  1. Create the account at https://resend.com. The free tier allows 3,000
+     emails a month and 100 a day, which is ample for a development deployment.
+
+  2. Verify the sending domain: Resend -> Domains -> Add Domain ->
+     kabeertheethnicstore.com. Resend prints DNS records; add them where the
+     domain is hosted (Cloudflare -> DNS if the nameservers are there):
+
+         MX     send            feedback-smtp.<region>.amazonses.com
+         TXT    send            v=spf1 include:amazonses.com ~all
+         TXT    resend._domainkey   p=...        (DKIM)
+
+     Set Proxy status to DNS only on every one of them. An orange cloud on a
+     mail record silently breaks delivery.
+
+     Verification usually completes in minutes. Until it does, Resend only
+     lets you send to the address you signed up with — enough to test, not
+     enough to open the shop.
+
+  3. API Keys -> Create API Key, permission "Sending access". Copy it once:
+     Resend never shows it again. Paste it into RESEND_API_KEY on Render.
+
+  4. Set EMAIL_FROM to an address on the verified domain, in the form
+     Kabeer <orders@kabeertheethnicstore.com>. Set EMAIL_REPLY_TO to wherever
+     customer replies should land.
+
+  Check it works: register a new account on the deployed storefront. The code
+  should arrive within seconds. If it does not, Render -> Logs and search for
+  "Resend" — the API returns the reason (unverified domain, bad key, blocked
+  recipient) and the backend logs it verbatim.
+
+  Without RESEND_API_KEY the API still starts and everything else works, but
+  registration is a dead end: the account is created, no code can be sent, and
+  the account cannot sign in. Configure this before you share the URL.
+
+
+-------------------------------------------------------------------------------
  8. CORS CONFIGURATION
 -------------------------------------------------------------------------------
 
     CORS_ORIGINS = https://kabeer-store.pages.dev
 
-  A comma-separated list of exact browser origins. Scheme + host + port, no
-  trailing slash, no wildcards.
+  A comma-separated list of browser origins: scheme + host + port. No wildcards.
 
-  This list is used twice: by @fastify/cors, and by the CSRF guard in
+  FRONTEND_URL (section 9) is ALWAYS allowed automatically, so CORS_ORIGINS is
+  only for ADDITIONAL origins — a second domain, or preview deployments. If the
+  storefront has just one address, setting FRONTEND_URL alone is enough.
+
+  A trailing slash or a path is stripped automatically, because an origin has
+  neither and browsers never send one. These are all equivalent:
+
+      https://kabeer-store.pages.dev
+      https://kabeer-store.pages.dev/
+      https://kabeer-store.pages.dev/shop
+
+  What is NOT equivalent is www versus the apex. Browsers treat
+  https://www.example.com and https://example.com as different origins. If you
+  serve both, list both; if one redirects to the other, only the destination
+  needs listing.
+
+  This list backs both @fastify/cors and the CSRF guard in
   backend/src/middleware/csrf.js, which rejects any state-changing request whose
-  Origin is not on it. Getting it wrong produces:
+  Origin is not on it. Getting it wrong produces a 403 on EVERY login, cart
+  update and checkout:
 
       403  {"error":{"code":"FORBIDDEN","message":"Request origin is not allowed"}}
+
+  Check what the server actually parsed — it is logged nowhere, so verify by
+  behaviour using the curl in section 14 check 5.
 
   Cloudflare Pages gives every branch a preview URL. To use previews against
   this dev API, list them too:
@@ -426,8 +516,20 @@ the /health route in backend/src/app.js.
          -d '{"email":"a@b.com","password":"whatever12345"}'
        -> HTTP/1.1 403 ... "Request origin is not allowed"
 
-  6) End to end, in a browser: open the Cloudflare URL, register, add to cart,
-     sign in as the admin, open /admin, upload a product image.
+  6) Email is wired up (THIS MUST SEND)
+
+       curl -i -X POST https://kabeer-api-dev.onrender.com/api/auth/forgot-password          -H "Origin: https://kabeer-dev.pages.dev" -H "Content-Type: application/json"          -d '{"email":"your-own@address.com"}'
+       -> HTTP/1.1 200 and a six-digit code in that inbox within seconds
+
+     The route answers 200 whether or not the address has an account — that is
+     deliberate, so it cannot be used to discover customers. Use an address you
+     control and check the inbox; if nothing arrives, Render -> Logs and search
+     for "Resend".
+
+  7) End to end, in a browser: open the Cloudflare URL, register with a real
+     address, enter the emailed code, add to cart, raise an issue at /support,
+     then sign in as the admin, open /admin, upload a product image, and answer
+     the issue from Governance -> Issue desk.
 
 
 -------------------------------------------------------------------------------

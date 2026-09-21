@@ -20,6 +20,11 @@ const Cart = lazy(() => import('./pages/Cart.jsx').then((m) => ({ default: m.Car
 const Checkout = lazy(() => import('./pages/Checkout.jsx').then((m) => ({ default: m.Checkout })));
 const Login = lazy(() => import('./pages/Login.jsx').then((m) => ({ default: m.Login })));
 const Register = lazy(() => import('./pages/Register.jsx').then((m) => ({ default: m.Register })));
+const ForgotPassword = lazy(() =>
+  import('./pages/ForgotPassword.jsx').then((m) => ({ default: m.ForgotPassword })),
+);
+const Policy = lazy(() => import('./pages/Policy.jsx').then((m) => ({ default: m.Policy })));
+const Support = lazy(() => import('./pages/Support.jsx').then((m) => ({ default: m.Support })));
 const Account = lazy(() => import('./pages/Account.jsx').then((m) => ({ default: m.Account })));
 const NotFound = lazy(() => import('./pages/NotFound.jsx').then((m) => ({ default: m.NotFound })));
 
@@ -54,6 +59,9 @@ const AdminCoupons = lazy(() =>
 const AdminContent = lazy(() =>
   import('./pages/admin/Content.jsx').then((m) => ({ default: m.Content })),
 );
+const AdminGovernance = lazy(() =>
+  import('./pages/admin/Governance.jsx').then((m) => ({ default: m.Governance })),
+);
 
 export default function App() {
   return (
@@ -71,10 +79,13 @@ export default function App() {
                     <Route path="cart" element={<Cart />} />
                     <Route path="login" element={<Login />} />
                     <Route path="register" element={<Register />} />
+                    <Route path="forgot-password" element={<ForgotPassword />} />
+                    <Route path="policies/:slug" element={<Policy />} />
 
                     <Route element={<ProtectedRoute />}>
                       <Route path="checkout" element={<Checkout />} />
                       <Route path="account" element={<Account />} />
+                      <Route path="support" element={<Support />} />
                     </Route>
 
                     <Route path="*" element={<NotFound />} />
@@ -94,6 +105,7 @@ export default function App() {
                       <Route path="coupons" element={<AdminCoupons />} />
                       <Route path="content" element={<AdminContent />} />
                       <Route path="content/:slug" element={<AdminContent />} />
+                      <Route path="governance" element={<AdminGovernance />} />
                     </Route>
                   </Route>
                 </Routes>

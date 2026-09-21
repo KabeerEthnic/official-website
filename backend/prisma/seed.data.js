@@ -833,6 +833,76 @@ export const pages = [
       },
     ],
   },
+  /*
+   * Store policies. These are ordinary CMS pages so the owner edits them in the
+   * same place as everything else, and the storefront renders them at
+   * /policies/<name>. The shipped text is a STARTING POINT, not legal advice —
+   * review it against your own terms before launch.
+   */
+  {
+    slug: 'policy-terms',
+    title: 'Terms of Service',
+    description: 'The terms you agree to when you shop with Kabeer.',
+    sections: [
+      {
+        key: 'body',
+        type: 'richText',
+        data: {
+          title: 'Terms of',
+          titleAccent: 'Service',
+          body: 'By placing an order with Kabeer The Ethnic Store you agree to these terms. Prices are shown in Indian rupees and include applicable taxes unless stated otherwise. We may correct pricing errors and decline or cancel an order at our discretion, refunding anything already paid. Products are handmade in small batches, so slight variation in colour, weave and finish is a characteristic of the craft rather than a defect. Replace this text with your own terms before launch.',
+        },
+      },
+    ],
+  },
+  {
+    slug: 'policy-privacy',
+    title: 'Privacy Policy',
+    description: 'What we collect, why, and what we do with it.',
+    sections: [
+      {
+        key: 'body',
+        type: 'richText',
+        data: {
+          title: 'Privacy',
+          titleAccent: 'Policy',
+          body: 'We collect only what we need to run the shop: your name, email address, phone number and delivery address, and a record of your orders. Payment card details are handled entirely by our payment provider and never reach our servers. We do not sell your data. You can ask us to correct or delete your account by raising an issue from your account page. Replace this text with your own policy before launch.',
+        },
+      },
+    ],
+  },
+  {
+    slug: 'policy-refunds',
+    title: 'Refunds & Returns',
+    description: 'How returns, exchanges and refunds work.',
+    sections: [
+      {
+        key: 'body',
+        type: 'richText',
+        data: {
+          title: 'Refunds &',
+          titleAccent: 'Returns',
+          body: 'Tell us within 7 days of delivery if something is not right and we will arrange a return or exchange. Items must be unworn, unwashed and in their original packaging with tags attached. Refunds are issued to the original payment method once the piece is back with us, usually within 7 working days. Made-to-measure and altered pieces cannot be returned unless they are faulty. Replace this text with your own policy before launch.',
+        },
+      },
+    ],
+  },
+  {
+    slug: 'policy-shipping',
+    title: 'Shipping Policy',
+    description: 'Dispatch times, delivery and charges.',
+    sections: [
+      {
+        key: 'body',
+        type: 'richText',
+        data: {
+          title: 'Shipping',
+          titleAccent: 'Policy',
+          body: 'Orders are dispatched within 2 to 3 working days. Delivery usually takes a further 3 to 7 working days depending on your location. You will receive an email when your payment is confirmed and again when your order is on its way. Shipping charges, where they apply, are shown at checkout before you pay. Replace this text with your own policy before launch.',
+        },
+      },
+    ],
+  },
   {
     slug: 'shop-suits',
     title: 'Exclusive Suits',

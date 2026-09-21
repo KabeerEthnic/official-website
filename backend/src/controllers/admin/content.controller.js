@@ -8,6 +8,7 @@ import {
   updateSection,
 } from '../../services/content.service.js';
 import { parse } from '../../validators/common.js';
+import { record } from '../../services/audit.service.js';
 import {
   pageParamsSchema,
   reorderSectionsSchema,
@@ -48,6 +49,16 @@ export async function patchAdminSection(request, reply) {
 
   await updateSection({ pageSlug: slug, key: request.params.key, ...input });
   const page = await getPage(slug, { admin: true });
+
+  await record(request, {
+    action: input.visible === undefined ? 'content.updated' : 'content.visibility_changed',
+    entityType: 'PageSection',
+    entityId: `${slug}/${request.params.key}`,
+    summary:
+      input.visible === undefined
+        ? `Edited the "${request.params.key}" section of ${page.title}`
+        : `${input.visible ? 'Showed' : 'Hid'} the "${request.params.key}" section of ${page.title}`,
+  });
 
   return reply.send({ data: serializePage(page, { admin: true }) });
 }

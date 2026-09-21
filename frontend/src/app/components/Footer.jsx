@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router';
+
+const FOOTER_LINKS = [
+  { to: '/policies/shipping', label: 'Shipping' },
+  { to: '/policies/refunds', label: 'Returns' },
+  { to: '/policies/terms', label: 'Terms' },
+  { to: '/policies/privacy', label: 'Privacy' },
+  { to: '/support', label: 'Help' },
+];
 
 const TAGLINES = [
   "Kabeer — The Ethnic Store",
@@ -54,6 +63,20 @@ export function Footer({ isIvoryTheme = false }) {
 
         {/* Divider */}
         <div className={`w-20 border-t ${dividerColor} mb-5`} />
+
+        {/* Policies and support — reachable from every page, as a storefront
+            taking payments has to be. Styled to match the copyright line. */}
+        <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mb-5">
+          {FOOTER_LINKS.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="text-[10px] md:text-xs font-sans tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
         {/* Copyright */}
         <p className="text-[10px] md:text-xs font-sans tracking-widest opacity-60">

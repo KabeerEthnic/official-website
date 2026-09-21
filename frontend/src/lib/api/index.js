@@ -9,10 +9,23 @@ import api from './client.js';
 export const auth = {
   me: (options) => api.get('/auth/me', options).then((r) => r.data.user),
   login: (credentials) => api.post('/auth/login', credentials).then((r) => r.data.user),
-  register: (details) => api.post('/auth/register', details).then((r) => r.data.user),
+  /** Returns { email, verificationRequired } — no session until the code is entered. */
+  register: (details) => api.post('/auth/register', details).then((r) => r.data),
   logout: () => api.post('/auth/logout'),
   updateProfile: (input) => api.patch('/auth/me', input).then((r) => r.data.user),
   changePassword: (input) => api.post('/auth/me/password', input),
+
+  verifyEmail: (input) => api.post('/auth/verify-email', input).then((r) => r.data.user),
+  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (input) => api.post('/auth/reset-password', input).then((r) => r.data.user),
+};
+
+export const support = {
+  tickets: (params, options) => api.get('/support/tickets', { ...options, params }),
+  ticket: (id, options) => api.get(`/support/tickets/${id}`, options).then((r) => r.data),
+  create: (input) => api.post('/support/tickets', input).then((r) => r.data),
+  reply: (id, body) => api.post(`/support/tickets/${id}/replies`, { body }).then((r) => r.data),
 };
 
 export const catalog = {
@@ -118,6 +131,25 @@ export const admin = {
     api.patch(`/admin/content/pages/${slug}/sections/${key}`, input).then((r) => r.data),
   reorderSections: (slug, keys) =>
     api.put(`/admin/content/pages/${slug}/sections/order`, { keys }).then((r) => r.data),
+
+  // Governance: issue desk, audit trail, administrators.
+  governanceSummary: (options) => api.get('/admin/governance/summary', options).then((r) => r.data),
+
+  tickets: (params, options) => api.get('/admin/governance/tickets', { ...options, params }),
+  ticket: (id, options) => api.get(`/admin/governance/tickets/${id}`, options).then((r) => r.data),
+  replyToTicket: (id, body) =>
+    api.post(`/admin/governance/tickets/${id}/replies`, { body }).then((r) => r.data),
+  setTicketStatus: (id, status) =>
+    api.patch(`/admin/governance/tickets/${id}/status`, { status }).then((r) => r.data),
+
+  auditLog: (params, options) => api.get('/admin/governance/audit', { ...options, params }),
+  auditActions: (options) => api.get('/admin/governance/audit/actions', options).then((r) => r.data),
+
+  admins: (options) => api.get('/admin/governance/admins', options).then((r) => r.data),
+  inviteAdmin: (input) => api.post('/admin/governance/admins', input),
+  signOutAdmin: (id) => api.post(`/admin/governance/admins/${id}/sign-out`).then((r) => r.data),
+  revokeAdmin: (id) => api.post(`/admin/governance/admins/${id}/revoke`).then((r) => r.data),
+  deleteAdmin: (id) => api.delete(`/admin/governance/admins/${id}`),
 
   uploadMedia: (file, folder = 'products') => {
     const form = new FormData();

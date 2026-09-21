@@ -1,5 +1,7 @@
 import { badRequest, notFound } from '../lib/errors.js';
 import prisma from '../lib/prisma.js';
+import { sendQuietly } from '../lib/email.js';
+import { orderConfirmation } from '../emails/templates.js';
 import { serializeOrder } from '../lib/serialize.js';
 import { requestCart } from '../middleware/cartContext.js';
 import { validateCartForCheckout } from '../services/cart.service.js';
@@ -56,6 +58,13 @@ export async function checkout(request, reply) {
       await prisma.address.create({ data: { ...input.shipping, userId: request.user.id } });
     }
   }
+
+  // Best effort: a receipt that fails to send must not fail the order, which
+  // has already reserved stock and taken a coupon.
+  await sendQuietly(
+    { to: order.contactEmail, ...orderConfirmation({ order }) },
+    request.log,
+  );
 
   return reply.code(201).send({ data: serializeOrder(order) });
 }

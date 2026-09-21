@@ -29,6 +29,20 @@ import {
   postCoupon,
 } from '../../controllers/admin/coupons.controller.js';
 import { getCustomer, listCustomers, patchCustomer } from '../../controllers/admin/customers.controller.js';
+import {
+  deleteAdmin,
+  getAuditActions,
+  getAuditLog,
+  getGovernanceSummary,
+  getTicketDetail,
+  inviteAdmin,
+  listAdmins,
+  listTickets,
+  patchTicketStatus,
+  postReply,
+  revokeAdmin,
+  signOutAdmin,
+} from '../../controllers/admin/governance.controller.js';
 import { getDashboard } from '../../controllers/admin/dashboard.controller.js';
 import { deleteUpload, postUpload } from '../../controllers/admin/media.controller.js';
 import {
@@ -97,4 +111,25 @@ export default async function adminRoutes(app) {
 
   app.post('/media', postUpload);
   app.delete('/media', deleteUpload);
+
+  /* ------------------------------------------------------------ governance */
+
+  app.get('/governance/summary', getGovernanceSummary);
+
+  // Issue desk — the admin side of the storefront's "raise an issue" page.
+  app.get('/governance/tickets', listTickets);
+  app.get('/governance/tickets/:id', getTicketDetail);
+  app.post('/governance/tickets/:id/replies', postReply);
+  app.patch('/governance/tickets/:id/status', patchTicketStatus);
+
+  // Audit log — append only, so there is no write route here by design.
+  app.get('/governance/audit', getAuditLog);
+  app.get('/governance/audit/actions', getAuditActions);
+
+  // Administrators.
+  app.get('/governance/admins', listAdmins);
+  app.post('/governance/admins', inviteAdmin);
+  app.post('/governance/admins/:id/sign-out', signOutAdmin);
+  app.post('/governance/admins/:id/revoke', revokeAdmin);
+  app.delete('/governance/admins/:id', deleteAdmin);
 }

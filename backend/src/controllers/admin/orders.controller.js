@@ -8,6 +8,7 @@ import {
   updateOrderStatusSchema,
 } from '../../validators/commerce.validator.js';
 import { parse } from '../../validators/common.js';
+import { record } from '../../services/audit.service.js';
 
 const ADMIN_ORDER_INCLUDE = { ...ORDER_INCLUDE, user: true };
 
@@ -93,12 +94,38 @@ export async function patchAdminOrder(request, reply) {
     include: ADMIN_ORDER_INCLUDE,
   });
 
+  const moves = [
+    input.status ? `status ${order.status} to ${input.status}` : null,
+    input.paymentStatus ? `payment ${order.paymentStatus} to ${input.paymentStatus}` : null,
+  ].filter(Boolean);
+
+  await record(request, {
+    action: input.paymentStatus ? 'order.payment_changed' : 'order.status_changed',
+    entityType: 'Order',
+    entityId: order.id,
+    summary: `Order ${order.orderNumber}: ${moves.join(', ') || 'notes updated'}`,
+    metadata: {
+      status: input.status ? { from: order.status, to: input.status } : undefined,
+      paymentStatus: input.paymentStatus
+        ? { from: order.paymentStatus, to: input.paymentStatus }
+        : undefined,
+    },
+  });
+
   return reply.send({ data: serializeOrder(updated, { admin: true }) });
 }
 
 export async function postCancelAdminOrder(request, reply) {
   const { reason } = parse(cancelOrderSchema, request.body ?? {});
   const order = await cancelOrder(request.params.id, { actor: request.user, reason });
+
+  await record(request, {
+    action: 'order.cancelled',
+    entityType: 'Order',
+    entityId: order.id,
+    summary: `Cancelled order ${order.orderNumber} and returned its stock`,
+    metadata: { reason: reason ?? null },
+  });
 
   return reply.send({ data: serializeOrder(order, { admin: true }) });
 }

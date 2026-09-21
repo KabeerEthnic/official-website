@@ -6,6 +6,7 @@ import {
   Menu,
   MessageSquare,
   Package,
+  ShieldCheck,
   ShoppingCart,
   Store,
   Tag,
@@ -27,6 +28,7 @@ const NAV = [
   { to: '/admin/reviews', label: 'Reviews', icon: MessageSquare },
   { to: '/admin/coupons', label: 'Coupons', icon: Ticket },
   { to: '/admin/content', label: 'Page content', icon: FileText },
+  { to: '/admin/governance', label: 'Governance', icon: ShieldCheck },
 ];
 
 export function AdminLayout() {

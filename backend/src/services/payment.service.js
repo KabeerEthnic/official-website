@@ -1,5 +1,7 @@
 import env from '../config/env.js';
 import prisma from '../lib/prisma.js';
+import { sendQuietly } from '../lib/email.js';
+import { paymentConfirmation } from '../emails/templates.js';
 import { badRequest, conflict, forbidden, notFound, serviceUnavailable } from '../lib/errors.js';
 import {
   createRazorpayOrder,
@@ -58,6 +60,19 @@ export async function startPayment({ orderId, user }) {
 }
 
 /**
+ * Sends the payment receipt, once, outside the transaction. Delivery failure is
+ * logged and swallowed — a receipt must never undo a completed payment.
+ */
+async function sendPaymentReceipt({ order, alreadyPaid }, paymentId, logger) {
+  if (alreadyPaid) return;
+
+  await sendQuietly(
+    { to: order.contactEmail, ...paymentConfirmation({ order, paymentId }) },
+    logger,
+  );
+}
+
+/**
  * Handles the browser's success callback. The signature proves the callback
  * came from Razorpay, and the payment is then re-read from the provider so a
  * forged or replayed callback cannot mark an order paid.
@@ -68,6 +83,7 @@ export async function verifyCheckoutPayment({
   razorpayPaymentId,
   signature,
   user,
+  logger,
 }) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -99,11 +115,15 @@ export async function verifyCheckoutPayment({
     throw conflict('Captured amount does not match the order total');
   }
 
-  return markOrderPaid(order.id, {
+  const result = await markOrderPaid(order.id, {
     providerPaymentId: razorpayPaymentId,
     providerOrderId: razorpayOrderId,
     amount: providerPayment.amount,
   });
+
+  await sendPaymentReceipt(result, razorpayPaymentId, logger);
+
+  return result.order;
 }
 
 /** Maps a Razorpay order id back to our order via the payment row. */
@@ -121,7 +141,7 @@ async function findOrderIdByProviderOrder(providerOrderId) {
  * Webhook entry point. Razorpay retries deliveries, so each event id is
  * recorded once and replays become no-ops.
  */
-export async function handleRazorpayWebhook({ rawBody, signature, eventId }) {
+export async function handleRazorpayWebhook({ rawBody, signature, eventId, logger }) {
   if (!env.RAZORPAY_WEBHOOK_SECRET) {
     throw serviceUnavailable('Webhooks are not configured on this server');
   }
@@ -156,13 +176,15 @@ export async function handleRazorpayWebhook({ rawBody, signature, eventId }) {
   if (orderId) {
     switch (event.event) {
       case 'payment.captured':
-      case 'order.paid':
-        await markOrderPaid(orderId, {
+      case 'order.paid': {
+        const result = await markOrderPaid(orderId, {
           providerPaymentId: entity?.id,
           providerOrderId: entity?.order_id,
           amount: entity?.amount,
         });
+        await sendPaymentReceipt(result, entity?.id, logger);
         break;
+      }
 
       case 'payment.failed':
         await markPaymentFailed(orderId, {

@@ -3,6 +3,7 @@ import prisma from '../../lib/prisma.js';
 import { serializeCoupon } from '../../lib/serialize.js';
 import { createCouponSchema, updateCouponSchema } from '../../validators/commerce.validator.js';
 import { paginationSchema, parse } from '../../validators/common.js';
+import { record } from '../../services/audit.service.js';
 
 export async function listCoupons(request, reply) {
   const { page, limit } = parse(paginationSchema, request.query);
@@ -26,6 +27,14 @@ export async function postCoupon(request, reply) {
   const input = parse(createCouponSchema, request.body);
   const coupon = await prisma.coupon.create({ data: input });
 
+  await record(request, {
+    action: 'coupon.created',
+    entityType: 'Coupon',
+    entityId: coupon.id,
+    summary: `Created coupon ${coupon.code}`,
+    metadata: { discountType: coupon.discountType, value: coupon.value },
+  });
+
   return reply.code(201).send({ data: serializeCoupon(coupon, { admin: true }) });
 }
 
@@ -36,6 +45,13 @@ export async function patchCoupon(request, reply) {
   if (!existing) throw notFound('Coupon not found');
 
   const coupon = await prisma.coupon.update({ where: { id: existing.id }, data: input });
+
+  await record(request, {
+    action: 'coupon.updated',
+    entityType: 'Coupon',
+    entityId: coupon.id,
+    summary: `Updated coupon ${coupon.code}`,
+  });
 
   return reply.send({ data: serializeCoupon(coupon, { admin: true }) });
 }

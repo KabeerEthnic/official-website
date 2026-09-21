@@ -267,7 +267,56 @@ export function serializePage(page, { admin = false } = {}) {
     slug: page.slug,
     title: page.title,
     description: page.description ?? null,
-    ...(admin ? { id: page.id, published: page.published, updatedAt: page.updatedAt } : {}),
+    // Public too: the policy pages show when they were last revised.
+    updatedAt: page.updatedAt,
+    ...(admin ? { id: page.id, published: page.published } : {}),
     sections,
+  };
+}
+
+export function serializeTicketMessage(message) {
+  return {
+    id: message.id,
+    author: message.authorName,
+    fromStaff: message.fromStaff,
+    body: message.body,
+    createdAt: message.createdAt,
+  };
+}
+
+export function serializeTicket(ticket, { admin = false } = {}) {
+  if (!ticket) return null;
+
+  return {
+    id: ticket.id,
+    reference: ticket.reference,
+    category: ticket.category,
+    subject: ticket.subject,
+    status: ticket.status,
+    lastReplyAt: ticket.lastReplyAt,
+    closedAt: ticket.closedAt ?? null,
+    createdAt: ticket.createdAt,
+    order: ticket.order
+      ? { id: ticket.order.id, orderNumber: ticket.order.orderNumber }
+      : null,
+    messages: (ticket.messages ?? []).map(serializeTicketMessage),
+    ...(ticket._count?.messages !== undefined ? { messageCount: ticket._count.messages } : {}),
+    ...(admin && ticket.user
+      ? { customer: { id: ticket.user.id, name: ticket.user.name, email: ticket.user.email } }
+      : {}),
+  };
+}
+
+export function serializeAuditEntry(entry) {
+  return {
+    id: entry.id,
+    action: entry.action,
+    summary: entry.summary,
+    entityType: entry.entityType,
+    entityId: entry.entityId ?? null,
+    actor: { id: entry.actorId ?? null, email: entry.actorEmail },
+    metadata: entry.metadata ?? null,
+    ip: entry.ip ?? null,
+    createdAt: entry.createdAt,
   };
 }

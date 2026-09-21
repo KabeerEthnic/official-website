@@ -74,6 +74,16 @@ const schema = z
     SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
     SUPABASE_STORAGE_BUCKET: z.string().default('product-media'),
 
+    /** Resend. Without a key, OTP flows refuse and receipts are skipped. */
+    RESEND_API_KEY: z.string().optional(),
+    /** Verified sender, e.g. "Kabeer <orders@kabeertheethnicstore.com>". */
+    EMAIL_FROM: z.string().optional(),
+    EMAIL_REPLY_TO: z.string().optional(),
+    /** How long an emailed one-time code stays usable. */
+    OTP_TTL_MINUTES: z.coerce.number().int().min(2).max(60).default(10),
+    /** Wrong guesses allowed before a code is burned. */
+    OTP_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(10).default(5),
+
     MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024),
     MAX_BODY_BYTES: z.coerce.number().int().positive().default(1024 * 1024),
 
@@ -128,18 +138,46 @@ if (!raw.SUPABASE_SECRET_KEY && raw.SUPABASE_SERVICE_ROLE_KEY) {
   );
 }
 
+/**
+ * An origin is scheme + host + port and nothing else. Browsers send exactly
+ * that in the Origin header, and the CORS and CSRF checks compare it as a
+ * string — so a trailing slash or a stray path in the configuration would
+ * silently reject every request from the real storefront. Normalising here
+ * makes "https://shop.example.com/" and "https://shop.example.com" equivalent.
+ * Anything unparseable is dropped rather than half-matched.
+ */
+function toOrigin(value) {
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * FRONTEND_URL is the storefront, so it is always allowed to call the API;
+ * CORS_ORIGINS adds any others (a second domain, preview deployments).
+ * Keeping them in one list means setting one without the other cannot produce
+ * a store that silently fails on every write.
+ */
+const corsOrigins = [
+  ...new Set(
+    [raw.FRONTEND_URL, ...raw.CORS_ORIGINS.split(',')].map(toOrigin).filter(Boolean),
+  ),
+];
+
 export const env = {
   ...raw,
   isProduction,
   isTest: raw.NODE_ENV === 'test',
-  corsOrigins: raw.CORS_ORIGINS.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  corsOrigins,
   cookieSecure: raw.COOKIE_SECURE ?? isProduction,
   /** Razorpay is optional at boot; checkout reports it clearly when missing. */
   razorpayEnabled: Boolean(raw.RAZORPAY_KEY_ID && raw.RAZORPAY_KEY_SECRET),
   supabaseKey,
   storageEnabled: Boolean(raw.SUPABASE_URL && supabaseKey),
+  /** Email is optional at boot; the flows that need it say so explicitly. */
+  emailEnabled: Boolean(raw.RESEND_API_KEY && raw.EMAIL_FROM),
 };
 
 export default env;

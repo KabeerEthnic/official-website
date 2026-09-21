@@ -44,6 +44,10 @@ describe('authorization', () => {
     '/api/admin/customers',
     '/api/admin/coupons',
     '/api/admin/content/pages',
+    '/api/admin/governance/summary',
+    '/api/admin/governance/tickets',
+    '/api/admin/governance/audit',
+    '/api/admin/governance/admins',
   ];
 
   for (const url of adminRoutes) {
@@ -56,9 +60,16 @@ describe('authorization', () => {
   }
 
   it('rejects anonymous access to customer-only routes', async () => {
-    for (const url of ['/api/orders', '/api/users/addresses', '/api/users/wishlist']) {
+    for (const url of ['/api/orders', '/api/users/addresses', '/api/users/wishlist', '/api/support/tickets']) {
       const response = await app.inject({ method: 'GET', url });
       assert.equal(response.statusCode, 401, url);
+    }
+  });
+
+  it('keeps the audit log append-only — there is no write route', async () => {
+    for (const method of ['POST', 'PATCH', 'DELETE']) {
+      const response = await app.inject({ method, url: '/api/admin/governance/audit' });
+      assert.equal(response.statusCode, 404, method);
     }
   });
 });
@@ -101,6 +112,17 @@ describe('request validation', () => {
 
     const fields = response.json().error.details.map((issue) => issue.field);
     assert.deepEqual(fields.sort(), ['email', 'name', 'password']);
+  });
+
+  it('will not let a verification attempt reach the database without a code', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/verify-email',
+      payload: { email: 'someone@example.com', code: '12' },
+    });
+
+    assert.equal(response.statusCode, 422);
+    assert.ok(response.json().error.details.some((issue) => issue.field === 'code'));
   });
 
   it('rejects an oversized JSON body', async () => {

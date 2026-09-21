@@ -152,7 +152,8 @@ frontend/
         │   └── ui/           button, input, cn()
         └── pages/
             ├── Home · Shop · ProductDetails · Cart · Checkout
-            ├── Login · Register · Account · NotFound
+            ├── Login · Register · ForgotPassword · Account
+            ├── Support · Policy · NotFound
             └── admin/        AdminLayout + eleven admin screens
 ```
 
@@ -163,13 +164,15 @@ backend/
 ├── prisma/
 │   ├── schema.prisma
 │   ├── migrations/           20260920000000_init
+│   │                         20260921000000_email_support_audit
 │   ├── seed.js               idempotent seeding
 │   └── seed.data.js          launch catalogue + page content
 ├── src/
 │   ├── config/               env contract · CMS section registry
+│   ├── emails/               HTML + plain-text templates
 │   ├── controllers/          request handling (admin/ for the back office)
 │   ├── lib/                  prisma · errors · password · session · money ·
-│   │                         slug · serialize · razorpay · storage
+│   │                         slug · serialize · razorpay · storage · email
 │   ├── middleware/           auth · csrf · errorHandler · cartContext
 │   ├── routes/               URL wiring, rate limits (admin/ nested)
 │   ├── services/             business logic and transactions
@@ -249,6 +252,8 @@ Schema: `backend/prisma/schema.prisma`.
 | Sales | `Order`, `OrderItem`, `Payment`, `WebhookEvent` |
 | Marketing | `Coupon`, `CouponRedemption`, `Review`, `NewsletterSubscriber` |
 | Content | `Page`, `PageSection` |
+| Support | `SupportTicket`, `SupportMessage` |
+| Governance | `EmailOtp`, `AuditLog` |
 
 ### Relationships
 
@@ -264,6 +269,10 @@ Category ──< Product ──1 Inventory
                     └──< ProductImage
 Coupon ──< CouponRedemption >── Order
 Page ──< PageSection
+User ──< SupportTicket ──< SupportMessage    a ticket may reference one Order
+User ──< AuditLog                            actorEmail is snapshotted, so the
+                                             trail survives the account
+EmailOtp                                     keyed by address, not by user
 ```
 
 ### Constraints and indexes
@@ -341,7 +350,10 @@ other route is `React.lazy`, so a shopper never downloads the admin area.
 | `/shop` | Collections; `?category=` picks the layout, plus `q`, `color`, `price`, `sort`, `page` |
 | `/product/:slug` | Product detail, reviews, related items |
 | `/cart` · `/checkout` | Cart and checkout (checkout requires a session) |
-| `/login` · `/register` · `/account` | Account (`/account` requires a session) |
+| `/login` · `/register` · `/forgot-password` | Sign in, sign up, reset — each with its emailed-code step |
+| `/account` | Orders, wishlist, addresses, profile (requires a session) |
+| `/support` | Raise an issue and follow the reply thread (requires a session) |
+| `/policies/:slug` | `terms`, `privacy`, `refunds`, `shipping` — CMS-backed |
 | `/admin/*` | Admin area (requires `role = ADMIN`) |
 | `*` | Not found |
 
@@ -438,6 +450,21 @@ Anything else becomes a generic 500 — stack traces, SQL and paths stay in the 
 - **Expiry** is `SESSION_TTL_DAYS` (30 by default). Logout revokes the session
   server-side; changing a password revokes every other device; suspending an
   account revokes its sessions immediately.
+- **Email verification is mandatory.** Registration creates the account but no
+  session: a six-digit code is emailed, and `POST /api/auth/verify-email` is
+  what actually signs the person in. Signing in before verifying returns
+  `403 EMAIL_UNVERIFIED`, which the UI turns into the code step rather than a
+  dead end. Accounts that predate the feature were backfilled as verified by
+  the migration, so nobody was locked out.
+- **Password reset** is the same mechanism with `purpose = PASSWORD_RESET`.
+  `POST /api/auth/forgot-password` answers identically whether or not the
+  address exists, so it cannot be used to enumerate customers; completing a
+  reset revokes every existing session.
+- **One-time codes** are six digits from `randomInt`, stored only as
+  `HMAC-SHA256(email:purpose:code, AUTH_SECRET)` and compared in constant time.
+  A code expires after `OTP_TTL_MINUTES`, dies after `OTP_MAX_ATTEMPTS` wrong
+  guesses, is superseded by the next code issued, and cannot be resent within
+  60 seconds.
 - **Guest carts** use a separate long-lived cookie and are merged into the
   account cart on sign-in.
 - **Authorization** is enforced per route on the server. Calling an admin
@@ -489,7 +516,8 @@ Sign in with an administrator account and open `/admin`.
 | Customers | Search; open an account to see addresses and orders; suspend or reactivate |
 | Reviews | Approve, reject or delete; nothing reaches the storefront unapproved |
 | Coupons | Percentage or fixed; minimum order; maximum discount; validity window; total and per-customer limits; active flag |
-| Page content | Edit the homepage and each collection page |
+| Page content | Edit the homepage, each collection page and the policy pages |
+| Governance | Issue desk, audit log, store policies, administrators |
 
 ### Content management
 
@@ -516,6 +544,31 @@ Editable today:
 Sections can be hidden and reordered. Images are uploaded through the same
 validated pipeline as product images.
 
+### Governance
+
+`/admin/governance` gathers the four things that are about running the store
+rather than selling from it:
+
+- **Issue desk.** Everything customers raise at `/support`, oldest-waiting
+  first, filterable by status and searchable by subject or reference. Replying
+  emails the customer and moves the ticket to *Answered*; statuses are Open,
+  Answered, Resolved and Closed.
+- **Audit log.** Who changed what, and when — products, prices, stock, orders,
+  coupons, content, customers and administrators. It is append-only by
+  construction: there is no write route, and the actor's email is stored as a
+  snapshot so an entry still makes sense after the account is gone.
+- **Store policies.** The four pages a storefront taking payments is expected to
+  publish — terms, privacy, refunds, shipping — with their status and a link to
+  edit each one under *Page content*. They render at `/policies/:slug` and are
+  linked from the footer.
+- **Administrators.** Who holds the keys, how many devices they are signed in on
+  and how many logged actions they have. You can invite (an existing customer is
+  promoted; a new address gets an emailed code to set a password), sign someone
+  out of every device, revoke access, or delete the account outright. Three
+  guards apply: you cannot act on yourself, the store always keeps at least one
+  active administrator, and an account with orders cannot be deleted — revoke it
+  instead, because a paid order must keep pointing at a real customer.
+
 **What the CMS deliberately does not do** is let content change a page's shape.
 The database supplies the words and pictures; the React component that owns the
 layout decides how they are drawn. That is what keeps each page's design intact
@@ -537,8 +590,8 @@ config. Template: `backend/.env.example`.
 | `LOG_LEVEL` | no | `info` | Pino level |
 | `DATABASE_URL` | **yes** | — | Postgres connection (pooled on Supabase) |
 | `DIRECT_URL` | no | — | Non-pooled connection, needed for migrations |
-| `CORS_ORIGINS` | no | `http://localhost:5173` | Comma-separated allowed browser origins; also the CSRF allowlist |
-| `FRONTEND_URL` | no | `http://localhost:5173` | Public storefront URL |
+| `CORS_ORIGINS` | no | `http://localhost:5173` | **Additional** browser origins beyond `FRONTEND_URL`, comma-separated; also the CSRF allowlist. Trailing slashes and paths are stripped; `www` and the apex are distinct origins |
+| `FRONTEND_URL` | no | `http://localhost:5173` | Canonical storefront URL. Always trusted as an allowed origin |
 | `AUTH_SECRET` | **yes** | — | ≥32 chars; keys session tokens. Rotating it logs everyone out |
 | `SESSION_TTL_DAYS` | no | `30` | Session lifetime |
 | `COOKIE_SAMESITE` | no | `lax` | `none` when the storefront is on another domain |
@@ -553,6 +606,11 @@ config. Template: `backend/.env.example`.
 | `SUPABASE_URL` · `SUPABASE_SECRET_KEY` | for uploads | — | Secret key (`sb_secret_…`) from Project Settings → API Keys. **Server-only** — it bypasses row-level security and must never reach the browser |
 | `SUPABASE_SERVICE_ROLE_KEY` | no | — | Legacy `service_role` JWT, accepted as a fallback. Supabase is retiring these through 2026; the server warns at boot when only this is set |
 | `SUPABASE_STORAGE_BUCKET` | no | `product-media` | Public bucket for media |
+| `RESEND_API_KEY` | for email | — | Resend API key. Blank disables email: verification and reset refuse with a clear message, receipts are skipped |
+| `EMAIL_FROM` | for email | — | Sender, e.g. `Kabeer <orders@your-domain.com>`. The domain must be verified in Resend |
+| `EMAIL_REPLY_TO` | no | — | Where customer replies land |
+| `OTP_TTL_MINUTES` | no | `10` | How long an emailed code stays valid |
+| `OTP_MAX_ATTEMPTS` | no | `5` | Wrong guesses before a code is burned |
 | `MAX_UPLOAD_BYTES` | no | `5242880` | Per-file upload cap |
 | `MAX_BODY_BYTES` | no | `1048576` | JSON body cap |
 | `SEED_ADMIN_EMAIL` · `SEED_ADMIN_PASSWORD` · `SEED_ADMIN_NAME` | no | — | Read only by `npm run db:seed` |
@@ -628,7 +686,22 @@ migrate; Supabase is retiring those keys through 2026.
 The storefront never talks to Supabase directly — media is uploaded through the
 API — so no Supabase key belongs in the frontend build.
 
-**3. Backend.**
+**3. Email** (needed to create an account). Registration emails a six-digit
+code, and the new account cannot sign in until the code is entered — so without
+this, sign-up does not complete on a fresh machine. Create a free account at
+[resend.com](https://resend.com), verify a sending domain under *Domains*, then
+put the API key in `RESEND_API_KEY` and an address on that domain in
+`EMAIL_FROM`.
+
+Until a domain is verified Resend only delivers to the address the account was
+registered with, which is enough to develop against. With `RESEND_API_KEY`
+unset the API still starts and everything else works; registration and password
+reset answer `503 Email is not configured on this server`, and receipts are
+skipped with a warning in the log. Existing accounts are unaffected — the
+migration backfilled them as verified — so you can still sign in as the
+administrator created by the seed.
+
+**4. Backend.**
 
 ```bash
 cd backend
@@ -652,7 +725,7 @@ images or page content. That makes the chain above safe to repeat whenever you
 restart. To deliberately reset the seeded records to their launch values on a
 scratch database, use `npm run db:seed -- --force`.
 
-**4. Frontend.**
+**5. Frontend.**
 
 ```bash
 cd ../frontend
@@ -663,7 +736,7 @@ npm run dev              # http://localhost:5173
 The dev server proxies `/api` to `http://localhost:4000`, so the storefront and
 API share an origin and session cookies work with no extra configuration.
 
-**5. Check it.** Open http://localhost:5173 — the homepage should show the seeded
+**6. Check it.** Open http://localhost:5173 — the homepage should show the seeded
 content. `/shop` should list products. Sign in with the seeded admin and open
 `/admin`.
 
@@ -860,12 +933,21 @@ cd backend  && npm test && npm run lint
 cd frontend && npm run lint && npm run build
 ```
 
-**Backend tests** (`node:test`, 42 cases, no database required) cover pricing
+**Backend tests** (`node:test`, 72 cases, no database required) cover pricing
 arithmetic, discount-before-tax ordering, coupon caps, password hashing and
 rejection, session token hashing, Razorpay checkout and webhook signature
-verification, the CMS registry and the seed's integrity, and the API surface —
-404s, 401s on every admin and customer route, CSRF rejection of a foreign origin,
+verification, origin normalisation for CORS and CSRF, Supabase key selection,
+the CMS registry and the seed's integrity, and the API surface — 404s, 401s on
+every admin, customer and support route, CSRF rejection of a foreign origin,
 field-level validation errors, body-size limits and webhook signature rejection.
+
+One-time codes get their own suite, with Prisma swapped for an in-memory double:
+six digits, never stored in plain text, single use, bound to both the address and
+the purpose, expiring on time, burned at the attempt cap, superseded by the next
+code, and rate-limited on resend. Alongside it, the sign-in gate is pinned down —
+an unverified account gets `403 EMAIL_UNVERIFIED`, and the password is checked
+*before* the gate, so the response cannot be used to discover which addresses are
+registered.
 
 **Lint** runs ESLint over both packages: unused imports and variables, React hook
 dependency correctness, and missing keys.
@@ -1033,6 +1115,8 @@ warns before doing so. If a deploy script passes `--force`, remove it.
 **Authentication**
 - [ ] The first administrator exists and its seeding password has been changed
 - [ ] Registering, signing in, signing out and password change all work
+- [ ] A new account receives its code and cannot sign in before entering it
+- [ ] "Forgot password" delivers a code, and using it signs out the other devices
 - [ ] An admin endpoint called without a session returns 401
 - [ ] A customer session cannot reach `/api/admin/*`
 - [ ] One customer cannot read another's order by id
@@ -1043,6 +1127,21 @@ warns before doing so. If a deploy script passes `--force`, remove it.
 - [ ] A real low-value order completes end to end
 - [ ] A cancelled payment leaves the order unpaid and returns stock after the TTL
 - [ ] A replayed webhook changes nothing
+
+**Email**
+- [ ] `RESEND_API_KEY` set and the `EMAIL_FROM` domain verified in Resend
+- [ ] SPF, DKIM and DMARC records published, and not proxied through Cloudflare
+- [ ] A verification code, an order confirmation and a payment confirmation all
+      arrive, and land in the inbox rather than in spam
+- [ ] `EMAIL_REPLY_TO` is a mailbox somebody reads
+
+**Governance**
+- [ ] More than one administrator, so nobody can lock the store out
+- [ ] Every policy page reviewed against what the store actually does — the
+      seeded wording is a placeholder and says so
+- [ ] Policy links in the footer open the right pages
+- [ ] Raising an issue from `/support` reaches the admin issue desk, and a reply
+      reaches the customer's inbox
 
 **Storage**
 - [ ] Bucket created, public read, writes restricted to the API's secret key
@@ -1082,13 +1181,14 @@ warns before doing so. If a deploy script passes `--force`, remove it.
 
 Stated plainly so nobody discovers them in production:
 
-- **Password reset by email is not implemented.** It needs an email provider,
-  which is not part of this deployment. A customer who forgets their password
-  cannot currently recover the account on their own; an administrator cannot
-  reset it for them either. Adding it means an email transport, a
-  `PasswordResetToken` table and two endpoints.
-- **Order emails are not sent.** Confirmation and shipping updates would use the
-  same transport.
+- **Email needs a verified domain.** Verification codes, password resets, order
+  and payment receipts and support replies all go through Resend. With
+  `RESEND_API_KEY` unset, the code flows refuse with a clear message and
+  receipts are skipped — so **nobody can register** until it is configured.
+  `EMAIL_FROM` must be on a domain verified in Resend.
+- **Shipping and dispatch emails are not sent.** Only order confirmation,
+  payment confirmation and support replies are. Marking an order shipped
+  updates the account page, not the inbox.
 - **Cash on delivery is not supported.** Checkout requires Razorpay.
 - **Refunds are recorded, not executed.** An administrator can mark a payment
   refunded; the money is moved in the Razorpay dashboard.

@@ -7,6 +7,7 @@ import newsletterRoutes from './newsletter.routes.js';
 import orderRoutes from './orders.routes.js';
 import pageRoutes from './pages.routes.js';
 import reviewRoutes from './reviews.routes.js';
+import supportRoutes from './support.routes.js';
 import userRoutes from './users.routes.js';
 import webhookRoutes from './webhooks.routes.js';
 
@@ -17,6 +18,7 @@ export default async function registerRoutes(app) {
   await app.register(orderRoutes, { prefix: '/api/orders' });
   await app.register(userRoutes, { prefix: '/api/users' });
   await app.register(reviewRoutes, { prefix: '/api/reviews' });
+  await app.register(supportRoutes, { prefix: '/api/support' });
   await app.register(pageRoutes, { prefix: '/api/pages' });
   await app.register(newsletterRoutes, { prefix: '/api/newsletter' });
   await app.register(adminRoutes, { prefix: '/api/admin' });

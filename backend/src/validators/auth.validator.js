@@ -27,6 +27,22 @@ export const changePasswordSchema = z.object({
   newPassword: password,
 });
 
+/** Six digits, as sent by email. */
+const otpCode = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, 'Enter the six-digit code from your email');
+
+export const emailOnlySchema = z.object({ email });
+
+export const verifyEmailSchema = z.object({ email, code: otpCode });
+
+export const resetPasswordSchema = z.object({
+  email,
+  code: otpCode,
+  newPassword: password,
+});
+
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
   phone: z

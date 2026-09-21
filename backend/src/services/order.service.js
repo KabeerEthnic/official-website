@@ -242,7 +242,9 @@ export async function markOrderPaid(orderId, { providerPaymentId, providerOrderI
     const order = await tx.order.findUnique({ where: { id: orderId }, include: ORDER_INCLUDE });
     if (!order) throw notFound('Order not found');
 
-    if (order.paymentStatus === 'PAID') return order;
+    // Already settled by the other path (browser callback vs webhook, or a
+    // webhook retry). Reporting that keeps the receipt exactly-once.
+    if (order.paymentStatus === 'PAID') return { order, alreadyPaid: true };
 
     if (amount !== undefined && amount !== order.total) {
       throw conflict('Captured amount does not match the order total');
@@ -262,11 +264,13 @@ export async function markOrderPaid(orderId, { providerPaymentId, providerOrderI
 
     await settleInventory(tx, orderId, 'sold');
 
-    return tx.order.update({
+    const updated = await tx.order.update({
       where: { id: orderId },
       data: { paymentStatus: 'PAID', status: 'CONFIRMED' },
       include: ORDER_INCLUDE,
     });
+
+    return { order: updated, alreadyPaid: false };
   });
 }
 

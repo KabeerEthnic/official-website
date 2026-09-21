@@ -100,7 +100,8 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
  5. SPA ROUTING — ALREADY CONFIGURED, DO NOT REMOVE
 -------------------------------------------------------------------------------
 
-  This app owns routes like /shop, /product/:slug, /account and /admin/orders.
+  This app owns routes like /shop, /product/:slug, /account, /support,
+  /policies/refunds and /admin/governance.
   Those paths do not exist as files. Without a rewrite, loading them directly —
   or pressing refresh on them, or following a shared link — returns 404 from
   the CDN.
@@ -289,7 +290,11 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
 
        curl -sSI https://kabeer-store.pages.dev/shop | head -1
        curl -sSI https://kabeer-store.pages.dev/admin/orders | head -1
-       -> HTTP/2 200 for both, NOT 404
+       curl -sSI https://kabeer-store.pages.dev/policies/refunds | head -1
+       -> HTTP/2 200 for all three, NOT 404
+
+     The policy pages are the ones customers reach from the footer and that
+     Razorpay's review looks for, so they must survive a direct hit.
 
   3) Assets are cached immutably
 
@@ -312,8 +317,10 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
        - no CORS errors in the console
 
   7) End to end in the browser: homepage renders CMS content, /shop lists
-     products, register, add to cart, sign in as admin, open /admin, upload an
-     image, refresh the page (SPA routing again).
+     products, register with a real address and enter the emailed code, add to
+     cart, open the footer's Terms and Refunds links, raise an issue at
+     /support, then sign in as admin, open /admin, upload an image, answer the
+     issue from Governance, and refresh the page (SPA routing again).
 
   8) Lighthouse (Chrome DevTools, mobile, incognito) against the deployed URL —
      not localhost, which has no compression or CDN.

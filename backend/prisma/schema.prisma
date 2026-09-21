@@ -60,6 +60,27 @@ enum DiscountType {
   FIXED
 }
 
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  ORDER
+  PAYMENT
+  DELIVERY
+  PRODUCT
+  ACCOUNT
+  OTHER
+}
+
 model User {
   id           String     @id @default(cuid())
   name         String
@@ -71,13 +92,20 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  addresses   Address[]
-  sessions    Session[]
-  carts       Cart[]
-  orders      Order[]
-  reviews     Review[]
-  wishlist    WishlistItem[]
-  redemptions CouponRedemption[]
+  /// Null until the customer has entered the emailed code. Sign-in is refused
+  /// while it is null, so every account maps to a reachable address.
+  emailVerifiedAt DateTime?
+
+  addresses      Address[]
+  sessions       Session[]
+  carts          Cart[]
+  orders         Order[]
+  reviews        Review[]
+  wishlist       WishlistItem[]
+  redemptions    CouponRedemption[]
+  tickets        SupportTicket[]
+  ticketMessages SupportMessage[]
+  auditLogs      AuditLog[]
 
   @@index([role, status])
   @@index([createdAt])
@@ -279,6 +307,7 @@ model Order {
   items      OrderItem[]
   payments   Payment[]
   redemption CouponRedemption?
+  tickets    SupportTicket[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -453,4 +482,90 @@ model NewsletterSubscriber {
   unsubscribedAt DateTime?
 
   @@index([createdAt])
+}
+
+/// One-time codes for email verification and password reset.
+///
+/// Keyed on the address rather than the user, so a reset can be requested for
+/// an address that does not exist without the response revealing that. Only an
+/// HMAC of the six digits is stored, and `attempts` caps guessing.
+model EmailOtp {
+  id         String     @id @default(cuid())
+  email      String
+  purpose    OtpPurpose
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int        @default(0)
+  createdAt  DateTime   @default(now())
+
+  @@index([email, purpose, createdAt])
+  @@index([expiresAt])
+}
+
+/// A customer support conversation. Raised from the storefront, worked in the
+/// admin's governance area.
+model SupportTicket {
+  id       String         @id @default(cuid())
+  /// Human-quotable reference, e.g. KES-T-7K2M19.
+  reference String        @unique
+  userId   String
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Optional link to the order the customer is asking about.
+  orderId  String?
+  order    Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  category TicketCategory @default(OTHER)
+  subject  String
+  status   TicketStatus   @default(OPEN)
+  /// Drives the "waiting longest" ordering in the admin desk.
+  lastReplyAt DateTime    @default(now())
+  closedAt    DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([userId, createdAt])
+  @@index([status, lastReplyAt])
+  @@index([createdAt])
+}
+
+model SupportMessage {
+  id       String  @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  /// Nulled if the account is deleted; fromStaff still says who was speaking.
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorName String
+  fromStaff Boolean @default(false)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+/// Append-only record of everything an administrator changes. Nothing in the
+/// application updates or deletes these rows — that is the point of them.
+model AuditLog {
+  id      String  @id @default(cuid())
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  /// Snapshot, so the trail stays readable after an account is removed.
+  actorEmail String
+  /// Dotted action name, e.g. "product.updated" or "admin.revoked".
+  action     String
+  entityType String
+  entityId   String?
+  /// One human sentence describing what happened.
+  summary    String
+  /// Before/after detail for the fields that changed.
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@index([action])
 }
