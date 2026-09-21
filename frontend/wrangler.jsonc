@@ -21,8 +21,15 @@
 
     // The app owns routes like /shop, /support and /policies/refunds that do
     // not exist as files. This serves index.html with a 200 for any unmatched
-    // path — the same job public/_redirects does on Pages — so deep links and
-    // refreshes work instead of 404ing.
+    // path, so deep links and refreshes work instead of 404ing.
+    //
+    // This REPLACES the Pages-style `/* /index.html 200` rule in a _redirects
+    // file. Do not add that rule back: Workers validates _redirects far more
+    // strictly than Pages did and refuses the whole deployment with
+    //     Invalid _redirects configuration:
+    //     Line N: Infinite loop detected in this rule.
+    // because stripping `/index` would re-trigger the same rule. If this app is
+    // ever moved back to Pages, that file is what has to come back.
     "not_found_handling": "single-page-application"
   }
 }

@@ -143,16 +143,26 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
   or pressing refresh on them, or following a shared link — returns 404 from
   the CDN.
 
-  Two mechanisms cover this, one per project type. Both are already in the
-  repository; do not remove either, so the app stays portable between them.
+  The two project types do this differently, and they are MUTUALLY EXCLUSIVE.
 
-  ON A WORKER - frontend/wrangler.jsonc:
+  ON A WORKER (what this project is) - frontend/wrangler.jsonc:
 
       "not_found_handling": "single-page-application"
 
   Any path that does not match a file in dist/ is served index.html with a 200.
 
-  ON PAGES - frontend/public/_redirects, which Vite copies into dist/:
+  There must be NO _redirects file containing the Pages catch-all. Workers
+  validates _redirects far more strictly than Pages did and fails the whole
+  deployment:
+
+      Invalid _redirects configuration:
+      Line 4: Infinite loop detected in this rule. This would cause a redirect
+      to strip `.html` or `/index` and end up triggering this rule again.
+
+  That is why frontend/public/_redirects is not in this repository.
+
+  ON PAGES, it is the other way round: wrangler.jsonc is ignored and you need
+  frontend/public/_redirects, which Vite copies into dist/:
 
       /*    /index.html   200
 
@@ -451,16 +461,21 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
       entry with that name.
 
   Homepage works, /shop returns 404 on refresh, on a WORKER
-      `not_found_handling` missing from wrangler.jsonc. Section 5. On a Worker
-      the _redirects file alone is not what provides the fallback.
+      `not_found_handling` missing from wrangler.jsonc. Section 5.
+
+  Deploy fails with "Invalid _redirects configuration: Infinite loop detected"
+      A _redirects file containing `/*  /index.html  200` has come back. That
+      is the Pages mechanism and a Worker rejects it. Delete the file; the
+      wrangler.jsonc `not_found_handling` setting already does the job.
 
   Build succeeds but the site is blank / "Nothing is here yet"
       Build output directory is wrong. It must be `dist`, relative to the root
       directory — not `frontend/dist`.
 
-  Homepage works, /shop returns 404 on refresh
-      _redirects missing from the build output. Confirm frontend/public/_redirects
-      exists, and that `ls dist` shows _redirects after a local `npm run build`.
+  Homepage works, /shop returns 404 on refresh, on PAGES
+      _redirects missing from the build output. On Pages you must add
+      frontend/public/_redirects with `/*  /index.html  200`, and `ls dist`
+      should show it after a local `npm run build`.
 
   Every API call fails with a CORS error
       The backend does not list this origin. Add it to CORS_ORIGINS on the API

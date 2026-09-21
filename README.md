@@ -127,9 +127,9 @@ than JWTs. Each avoids a dependency without giving anything up.
 frontend/
 ├── index.html
 ├── vite.config.js            build config, "@" alias, dev proxy to the API
+├── wrangler.jsonc            Cloudflare Workers deploy: static dist/ + SPA fallback
 ├── eslint.config.js
 ├── public/
-│   ├── _redirects            SPA rewrite — deep links 404 without it
 │   └── _headers              immutable caching for /assets, no cache for HTML
 └── src/
     ├── main.jsx              React root
