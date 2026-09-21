@@ -1,6 +1,7 @@
 import './setup.js';
 
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { describe, it } from 'node:test';
 
 /**
@@ -47,6 +48,30 @@ describe('allowed origins', () => {
     });
 
     assert.deepEqual(env.corsOrigins, ['https://shop.example.com']);
+  });
+
+  it('refuses a comma-separated FRONTEND_URL instead of booting with a dead origin', () => {
+    // "https://a.com,https://b.com" IS a valid URL - the host parses as
+    // "a.com,https" - so without an explicit check the config loads cleanly and
+    // then 403s every request from the real storefront. Bad config exits the
+    // process, so this has to be observed from outside it.
+    const result = spawnSync(
+      process.execPath,
+      ['-e', "import('./src/config/env.js')"],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          FRONTEND_URL: 'https://shop.example.com,https://www.shop.example.com',
+          CORS_ORIGINS: '',
+        },
+      },
+    );
+
+    assert.equal(result.status, 1, 'the process must refuse to start');
+    assert.match(result.stderr, /FRONTEND_URL/);
+    assert.match(result.stderr, /CORS_ORIGINS/);
   });
 
   it('strips any path, since an origin has none', async () => {

@@ -42,8 +42,19 @@ const schema = z
 
     /** Comma-separated list of browser origins allowed to call this API. */
     CORS_ORIGINS: z.string().default('http://localhost:5173'),
-    /** Public URL of the storefront, used in links sent to customers. */
-    FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+    /**
+     * Public URL of the storefront, used in links sent to customers. Exactly
+     * one URL: a comma-separated list parses as a valid URL whose host ends up
+     * as "shop.example.com,https", which matches no browser origin and would
+     * 403 every write while booting perfectly happily.
+     */
+    FRONTEND_URL: z
+      .string()
+      .url()
+      .refine((value) => !value.includes(','), {
+        message: 'FRONTEND_URL takes one URL — list any others in CORS_ORIGINS',
+      })
+      .default('http://localhost:5173'),
 
     /** Signing key for the session cookie. Rotating it logs everyone out. */
     AUTH_SECRET: z.string().min(32, 'AUTH_SECRET must be at least 32 characters'),
