@@ -1,0 +1,28 @@
+{
+  // Cloudflare Workers static-asset deployment for the storefront.
+  //
+  // This project is deployed as a Worker (Workers Builds runs `wrangler deploy`
+  // after `npm run build`), not as a Pages project. `wrangler deploy` needs this
+  // file to know what to publish; without it wrangler finds no configuration,
+  // falls back to inspecting the Vite project, and fails with
+  // "Error parsing file: .../vite.config.js".
+  //
+  // There is no `main` entry: nothing runs server-side. This is a purely static
+  // deployment of dist/, exactly as it was on Pages.
+
+  // MUST match the Worker's name in the Cloudflare dashboard. A different name
+  // silently creates a second Worker and deploys to that instead.
+  "name": "official-website",
+
+  "compatibility_date": "2026-09-21",
+
+  "assets": {
+    "directory": "./dist",
+
+    // The app owns routes like /shop, /support and /policies/refunds that do
+    // not exist as files. This serves index.html with a 200 for any unmatched
+    // path — the same job public/_redirects does on Pages — so deep links and
+    // refreshes work instead of 404ing.
+    "not_found_handling": "single-page-application"
+  }
+}

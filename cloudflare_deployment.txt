@@ -42,10 +42,24 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
  2. CONNECT GITHUB AND CREATE THE PROJECT
 -------------------------------------------------------------------------------
 
-  Cloudflare Dashboard -> Workers & Pages -> Create -> Pages ->
-  Connect to Git -> authorise GitHub -> select this repository.
+  Cloudflare Dashboard -> Workers & Pages -> Create -> Connect to Git ->
+  authorise GitHub -> select this repository.
 
   Then "Begin setup" and fill in the build configuration in section 3.
+
+  WHICH KIND OF PROJECT YOU GET MATTERS. Cloudflare now creates Git-connected
+  static sites as WORKERS (Workers Builds), not as Pages projects. You can tell
+  them apart in Settings:
+
+      Workers   has a "Deploy command" field, usually `npx wrangler deploy`
+      Pages     has no deploy command; it just uploads the build output
+
+  Both host this app identically. This document covers both, because the
+  dashboard creates Workers today while older projects are Pages.
+
+  On a Worker, frontend/wrangler.jsonc is what makes `wrangler deploy` work -
+  see section 3. Without it the build succeeds and the deploy fails with
+  "Error parsing file: .../vite.config.js".
 
   This is a monorepo. Cloudflare is pointed at the frontend with the Root
   Directory setting below — do not split the repository.
@@ -62,10 +76,33 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
 
       Framework preset             Vite
       Build command                npm run build
-      Build output directory       dist
+      Deploy command               npx wrangler deploy      (Workers only)
+      Build output directory       dist                     (Pages only)
       Root directory (advanced)    frontend
 
   Notes that matter:
+
+  - ON A WORKER, `npx wrangler deploy` needs frontend/wrangler.jsonc, which is
+    committed to this repository:
+
+        {
+          "name": "official-website",
+          "compatibility_date": "2026-09-21",
+          "assets": {
+            "directory": "./dist",
+            "not_found_handling": "single-page-application"
+          }
+        }
+
+    `name` MUST match the Worker's name in the dashboard. A different name does
+    not fail - it quietly creates a SECOND Worker and deploys there, leaving the
+    one your domain points at untouched.
+
+    There is no `main` entry, so nothing runs server-side: this is a purely
+    static deployment of dist/. `directory` is relative to this file, so
+    `./dist` is correct when Root directory is `frontend`.
+
+  - ON PAGES there is no deploy command and wrangler.jsonc is ignored.
 
   - Build output directory is `dist`, RELATIVE to the root directory. It is
     `dist`, not `frontend/dist`. Getting this wrong produces a successful build
@@ -106,7 +143,16 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
   or pressing refresh on them, or following a shared link — returns 404 from
   the CDN.
 
-  frontend/public/_redirects handles it and Vite copies it into dist/:
+  Two mechanisms cover this, one per project type. Both are already in the
+  repository; do not remove either, so the app stays portable between them.
+
+  ON A WORKER - frontend/wrangler.jsonc:
+
+      "not_found_handling": "single-page-application"
+
+  Any path that does not match a file in dist/ is served index.html with a 200.
+
+  ON PAGES - frontend/public/_redirects, which Vite copies into dist/:
 
       /*    /index.html   200
 
@@ -386,6 +432,27 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
 
   Build fails with syntax errors inside node_modules
       NODE_VERSION not set, so Pages used an old Node. Section 4.
+
+  Build SUCCEEDS, then "Failed: error occurred while running deploy command"
+      with  [ERROR] Error parsing file: /opt/buildhome/repo/frontend/vite.config.js
+
+      This is a Workers project running `npx wrangler deploy`, and there is no
+      wrangler configuration for it to read. Finding none, wrangler falls back
+      to inspecting the Vite project and gives up on vite.config.js - which is
+      a Vite config, not a wrangler one.
+
+      Fix: commit frontend/wrangler.jsonc (section 3) with `name` matching the
+      Worker in the dashboard, and redeploy. Nothing about the Vite config is
+      wrong; it never needed changing.
+
+  Deploy reports success but the site is unchanged
+      `name` in wrangler.jsonc does not match the Worker you are looking at, so
+      the deploy went to a different Worker. Check Workers & Pages for a second
+      entry with that name.
+
+  Homepage works, /shop returns 404 on refresh, on a WORKER
+      `not_found_handling` missing from wrangler.jsonc. Section 5. On a Worker
+      the _redirects file alone is not what provides the fallback.
 
   Build succeeds but the site is blank / "Nothing is here yet"
       Build output directory is wrong. It must be `dist`, relative to the root
