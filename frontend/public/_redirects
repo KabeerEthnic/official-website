@@ -1,0 +1,4 @@
+# Cloudflare Pages: this is a single-page app, so any path the CDN does not
+# find as a file must be served index.html and routed by react-router.
+# Without this, refreshing /shop or /admin/orders returns a 404.
+/*    /index.html   200

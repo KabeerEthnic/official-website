@@ -1,0 +1,1428 @@
+You are working on an existing ecommerce website that is intended for REAL-WORLD PRODUCTION LAUNCH.
+
+This is NOT a demo, prototype, hackathon MVP, or learning project.
+
+The final application will be deployed publicly and used by real customers and an owner/admin. Therefore, treat security, data integrity, performance, maintainability, reliability, scalability, error handling, and deployment readiness as first-class requirements.
+
+============================================================
+CURRENT PROJECT STRUCTURE
+============================================================
+
+The current project root contains:
+
+/
+├── .git/
+├── frontend/
+└── README.md
+
+`/frontend` already contains a substantially designed ecommerce website.
+
+The frontend was initially created using Figma Make and therefore may contain:
+- generated code
+- unnecessary dependencies
+- unused components
+- duplicated code
+- temporary/demo implementations
+- unnecessary configuration
+- Figma Make-specific residue
+- mock data
+- dead code
+
+The existing visual design represents significant manual work.
+
+DO NOT redesign the website.
+
+Your job is to turn the existing frontend into a complete production ecommerce application while preserving its current visual identity.
+
+============================================================
+FINAL PROJECT ARCHITECTURE
+============================================================
+
+Keep the application architecture simple and clean.
+
+The project root should primarily contain:
+
+/
+├── .git/
+├── frontend/
+├── backend/
+└── README.md
+
+Do NOT create unnecessary root-level directories such as:
+
+/api
+/server
+/database
+/admin
+/shared
+/uploads
+
+unless there is a concrete technical requirement that justifies them.
+
+Application responsibilities:
+
+`/frontend`
+→ React/Vite frontend
+→ customer-facing website
+→ admin dashboard
+→ frontend API/data-access layer
+→ frontend state/UI logic
+
+`/backend`
+→ API
+→ authentication
+→ authorization
+→ business logic
+→ database access
+→ validation
+→ ecommerce operations
+→ admin APIs
+→ security
+→ integrations
+
+`Supabase PostgreSQL`
+→ production database
+
+`Supabase Storage or Cloudinary`
+→ product images and other media
+
+============================================================
+TECHNOLOGY STACK
+============================================================
+
+Use the following stack unless inspection of the existing project reveals a compelling technical reason otherwise.
+
+FRONTEND:
+- React
+- Vite
+- JavaScript
+- Existing styling system should be preserved
+- Do NOT convert the project to TypeScript
+- Do NOT replace the frontend framework
+
+BACKEND:
+- Node.js
+- Fastify
+- JavaScript
+
+DATABASE:
+- PostgreSQL
+- Supabase as managed PostgreSQL provider
+- Prisma ORM
+
+VALIDATION:
+- Zod or an equally lightweight, production-quality validation solution
+
+AUTHENTICATION:
+- Secure HTTP-only cookie-based authentication/session strategy
+- Proper password hashing
+- Role-based authorization
+
+PAYMENTS:
+- Architect for Razorpay integration
+- Never trust prices or totals sent by the frontend
+- Payment confirmation must be verified server-side
+- Webhooks must be handled securely
+
+MEDIA:
+- Supabase Storage or Cloudinary
+- Do NOT store image binaries directly in PostgreSQL
+
+Use as few dependencies as reasonably possible.
+
+Do not add libraries simply because they are popular.
+
+Every dependency must have an actual purpose.
+
+============================================================
+FIRST: AUDIT BEFORE MODIFYING
+============================================================
+
+Before writing substantial code, inspect the ENTIRE existing `/frontend`.
+
+Understand:
+
+- framework
+- package manager
+- build system
+- routing
+- components
+- pages
+- styling
+- assets
+- state management
+- current data flow
+- mock data
+- API code
+- dependencies
+- configuration
+- environment variables
+- Figma Make residue
+- duplicated code
+- dead code
+- unused assets
+- unused packages
+
+Do not blindly rewrite the frontend.
+
+Do not replace working architecture merely because you personally prefer another architecture.
+
+Preserve good existing code.
+
+Only remove something after determining that it is genuinely unused, obsolete, duplicated, or harmful.
+
+Before making major changes, inspect Git status and make sure existing user work is not overwritten or destroyed.
+
+NEVER delete `.git`.
+
+NEVER reinitialize the repository.
+
+============================================================
+DESIGN PRESERVATION — ABSOLUTE REQUIREMENT
+============================================================
+
+The existing frontend contains substantial design work.
+
+DO NOT redesign it.
+
+Preserve:
+
+- page layouts
+- spacing
+- typography
+- colors
+- animations
+- transitions
+- responsive behavior
+- component appearance
+- navigation
+- cards
+- buttons
+- forms
+- hero sections
+- custom interactions
+- page-specific visual identity
+- unique layouts
+- custom styling
+
+Every page is intentionally designed.
+
+Do NOT force all pages into a generic ecommerce template.
+
+Do NOT replace custom components with generic components merely because they are easier to implement.
+
+DO NOT rebuild the website from scratch.
+
+When backend integration is required, integrate the backend underneath the existing UI.
+
+If a visual change is not technically necessary:
+
+DO NOT MAKE IT.
+
+If a visual change is technically necessary:
+
+make the smallest possible change while preserving the existing design.
+
+============================================================
+CLEAN THE FIGMA MAKE RESIDUE
+============================================================
+
+The existing frontend was originally generated using Figma Make.
+
+Perform a careful cleanup.
+
+Remove:
+
+- unused dependencies
+- unused imports
+- unused variables
+- unused components
+- duplicated utilities
+- obsolete configuration
+- mock/demo implementations that are no longer required
+- temporary debugging code
+- unnecessary Figma Make dependencies
+- unnecessary generated files
+- dead CSS
+- unused assets
+- redundant code
+
+Do NOT blindly delete files.
+
+Verify references before removing anything.
+
+The final frontend should look like code maintained by an experienced engineering team, not exported/generated prototype code.
+
+============================================================
+BACKEND
+============================================================
+
+Create:
+
+/backend
+
+Use a clean modular architecture.
+
+Recommended structure:
+
+backend/
+├── src/
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── routes/
+│   ├── services/
+│   ├── validators/
+│   ├── utils/
+│   ├── app.js
+│   └── server.js
+│
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+│
+├── .env.example
+├── package.json
+└── README.md
+
+Adjust the structure if the actual application requires something different.
+
+Do not over-engineer.
+
+The architecture should be modular enough to maintain as the business grows.
+
+============================================================
+DATABASE
+============================================================
+
+Use PostgreSQL through Supabase.
+
+Use Prisma as the database access layer.
+
+Design a proper relational schema.
+
+The database should support at minimum:
+
+USERS
+- id
+- name
+- email
+- password hash
+- role
+- account status
+- timestamps
+
+ADDRESSES
+- user
+- name
+- phone
+- address
+- city
+- state
+- postal code
+- country
+- timestamps
+
+CATEGORIES
+- name
+- slug
+- description
+- visibility
+- timestamps
+
+PRODUCTS
+- name
+- slug
+- description
+- SKU
+- price
+- sale price
+- category
+- status
+- metadata where genuinely useful
+- timestamps
+
+PRODUCT IMAGES
+- product
+- URL
+- alt text
+- ordering
+- visibility
+
+INVENTORY
+- product
+- available quantity
+- reserved quantity if required
+- inventory timestamps
+
+CARTS
+- user/session
+- timestamps
+
+CART ITEMS
+- cart
+- product
+- quantity
+
+ORDERS
+- user
+- order status
+- payment status
+- subtotal
+- discount
+- shipping
+- tax if applicable
+- total
+- shipping information snapshot
+- timestamps
+
+ORDER ITEMS
+- order
+- product reference
+- product name snapshot
+- SKU snapshot
+- price snapshot
+- quantity
+
+PAYMENTS
+- order
+- provider
+- transaction/payment ID
+- amount
+- status
+- timestamps
+
+REVIEWS
+- user
+- product
+- rating
+- review
+- moderation status
+- timestamps
+
+WISHLIST
+- user
+- products
+
+COUPONS
+- code
+- discount type
+- value
+- validity
+- usage limits
+- minimum order value
+- status
+
+PAGE CONTENT / CMS
+- pages
+- page sections
+- editable content
+- ordering
+- visibility
+- timestamps
+
+Add other entities only when required.
+
+Use proper foreign keys, constraints, indexes and unique constraints.
+
+Do not store everything as JSON.
+
+Use PostgreSQL JSON/JSONB only where flexible content genuinely requires it, particularly for CMS section configuration.
+
+============================================================
+DATA INTEGRITY
+============================================================
+
+This is an ecommerce application.
+
+Data integrity is critical.
+
+Use database transactions wherever multiple related operations must succeed together.
+
+For example:
+
+Order creation should safely handle:
+
+1. Validate authenticated customer.
+2. Retrieve products from database.
+3. Validate product availability.
+4. Validate quantities.
+5. Calculate prices server-side.
+6. Validate discounts.
+7. Calculate final total.
+8. Reserve/decrease inventory appropriately.
+9. Create order.
+10. Create order items.
+11. Create payment record.
+12. Commit transaction.
+
+If a critical step fails, the database must not be left in an inconsistent state.
+
+Never trust:
+
+- product prices from frontend
+- discount amounts from frontend
+- stock information from frontend
+- final order totals from frontend
+- user roles supplied by frontend
+
+The backend is authoritative.
+
+============================================================
+ECOMMERCE FUNCTIONALITY
+============================================================
+
+Implement real ecommerce functionality.
+
+CUSTOMERS:
+
+- registration
+- login
+- logout
+- authentication persistence
+- profile
+- addresses
+- cart
+- wishlist
+- product browsing
+- search
+- filters
+- sorting
+- pagination
+- product details
+- reviews
+- checkout
+- order history
+- order details
+
+PRODUCTS:
+
+- CRUD
+- categories
+- SKU
+- pricing
+- sale pricing
+- images
+- inventory
+- visibility
+- product status
+
+CART:
+
+- add item
+- remove item
+- update quantity
+- retrieve cart
+- stock validation
+- price validation
+
+ORDERS:
+
+- create order
+- order items
+- price snapshots
+- shipping information snapshot
+- order status
+- payment status
+- order history
+- cancellation where applicable
+
+INVENTORY:
+
+- stock tracking
+- safe stock updates
+- prevent overselling
+- appropriate transaction handling
+
+REVIEWS:
+
+- create
+- read
+- moderation
+- appropriate edit/delete permissions
+
+COUPONS:
+
+- creation
+- expiration
+- usage limits
+- validation
+- minimum order value
+- discount calculation
+
+SEARCH:
+
+- search
+- filtering
+- sorting
+- pagination
+
+============================================================
+ADMIN / CMS
+============================================================
+
+Add an admin section inside the EXISTING frontend.
+
+Do NOT create a separate root-level `/admin` project.
+
+The admin UI belongs inside `/frontend`.
+
+Example:
+
+frontend/src/pages/admin/
+
+The admin area should visually belong to the existing website.
+
+Do not create an ugly generic dashboard disconnected from the existing design language.
+
+The admin system must be protected by backend authorization.
+
+ADMIN FEATURES:
+
+AUTHENTICATION
+- secure admin login
+- protected routes
+- role verification
+- backend authorization
+
+PRODUCT MANAGEMENT
+- create
+- edit
+- archive/delete
+- pricing
+- sale pricing
+- SKU
+- inventory
+- images
+- category
+- visibility
+
+CATEGORY MANAGEMENT
+- create
+- edit
+- archive/delete
+- ordering/visibility where necessary
+
+ORDER MANAGEMENT
+- view orders
+- search
+- filter
+- order details
+- update order status
+- payment status
+
+CUSTOMER MANAGEMENT
+- view customers
+- account status
+- order history
+
+CONTENT MANAGEMENT
+
+The owner must be able to update appropriate website content without modifying source code.
+
+Depending on what already exists, support editing:
+
+- hero headings
+- subtitles
+- banners
+- images
+- promotional sections
+- featured products
+- categories
+- announcement bars
+- buttons
+- links
+- page-specific text
+- section visibility
+- collections
+
+IMPORTANT:
+
+Do NOT force every unique page into the same CMS structure.
+
+The site's pages are intentionally unique.
+
+The CMS should allow structured editing while preserving the unique frontend implementation.
+
+The database should store the content.
+
+The frontend should determine how that content is visually rendered.
+
+============================================================
+FRONTEND-BACKEND INTEGRATION
+============================================================
+
+Create a clean frontend API/data-access layer.
+
+Do NOT scatter raw fetch calls throughout random React components.
+
+Create a consistent structure for:
+
+- authentication
+- products
+- categories
+- cart
+- orders
+- users
+- reviews
+- wishlist
+- CMS
+- admin
+
+Handle:
+
+- loading states
+- errors
+- empty states
+- authentication state
+- expired sessions
+- failed requests
+- retries where appropriate
+- pagination
+- caching where beneficial
+- optimistic updates where safe
+
+Replace mock data with backend data where appropriate.
+
+Preserve the exact existing UI.
+
+============================================================
+AUTHENTICATION & AUTHORIZATION
+============================================================
+
+Implement production-grade authentication.
+
+Requirements:
+
+- secure password hashing
+- secure authentication cookies
+- appropriate session/token expiration
+- logout/invalidation
+- protected routes
+- role-based authorization
+- admin authorization
+- server-side permission checks
+- account status handling
+
+Never rely on frontend route protection alone.
+
+An attacker should not be able to access admin APIs simply by manually calling the endpoint.
+
+============================================================
+SECURITY
+============================================================
+
+Treat the application as internet-facing production software.
+
+Implement appropriate protection against:
+
+- SQL injection
+- XSS
+- CSRF where applicable
+- brute-force login attempts
+- credential abuse
+- malicious file uploads
+- unauthorized API access
+- privilege escalation
+- price manipulation
+- inventory manipulation
+- malformed requests
+- oversized requests
+- sensitive information leakage
+
+Use:
+
+- input validation
+- authentication
+- authorization
+- secure cookies
+- rate limiting
+- secure headers
+- CORS configuration
+- request size limits
+- safe error responses
+- environment variables
+- secure secrets management
+
+Never commit secrets.
+
+Never expose:
+
+- database credentials
+- private API keys
+- authentication secrets
+- payment secrets
+
+to the frontend.
+
+============================================================
+PAYMENTS
+============================================================
+
+Structure payment processing for Razorpay.
+
+Never trust the frontend for:
+
+- price
+- quantity
+- discount
+- tax
+- shipping
+- total amount
+
+The backend must calculate the final amount.
+
+Payment status must be verified through the payment provider.
+
+Implement webhook verification correctly.
+
+Handle:
+
+- successful payment
+- failed payment
+- abandoned payment
+- duplicate webhook events
+- invalid webhook signatures
+- order/payment state consistency
+
+Payment logic must be idempotent where appropriate.
+
+============================================================
+MEDIA
+============================================================
+
+Product images and CMS media must NOT be stored directly in PostgreSQL.
+
+Use:
+
+- Supabase Storage
+OR
+- Cloudinary
+
+Store references/URLs and metadata in PostgreSQL.
+
+Implement appropriate validation for uploaded files:
+
+- file type
+- file size
+- allowed formats
+- safe naming
+- access control
+
+============================================================
+PERFORMANCE
+============================================================
+
+The website must feel fast and responsive.
+
+FRONTEND:
+
+- remove unnecessary dependencies
+- minimize bundle size
+- lazy-load appropriate routes
+- optimize images
+- avoid unnecessary rerenders
+- avoid duplicate API calls
+- debounce search
+- use appropriate caching
+- avoid expensive calculations during rendering
+- maintain smooth animations
+- preserve mobile performance
+
+BACKEND:
+
+- efficient database queries
+- proper indexes
+- pagination
+- avoid N+1 queries
+- avoid unnecessary database calls
+- appropriate caching
+- compression where useful
+- efficient middleware
+- efficient serialization
+
+DATABASE:
+
+- indexes on frequently queried fields
+- unique constraints where required
+- efficient relations
+- proper pagination
+- avoid fetching unnecessary columns/data
+- use transactions appropriately
+
+Do not add complexity merely to claim something is "optimized."
+
+Measure and fix actual bottlenecks where possible.
+
+============================================================
+RESPONSIVENESS
+============================================================
+
+The existing website must remain fully usable on:
+
+- mobile
+- tablet
+- laptop
+- desktop
+- large displays
+
+Do not break existing responsive behavior while integrating backend functionality.
+
+Test all major existing pages after modifications.
+
+Admin pages should also be usable on smaller screens.
+
+============================================================
+API DESIGN
+============================================================
+
+Use clean REST APIs.
+
+Examples:
+
+/api/auth/*
+/api/products/*
+/api/categories/*
+/api/cart/*
+/api/orders/*
+/api/users/*
+/api/reviews/*
+/api/wishlist/*
+/api/coupons/*
+/api/pages/*
+/api/admin/*
+
+Use correct:
+
+- HTTP methods
+- HTTP status codes
+- validation
+- authorization
+- error handling
+
+Use consistent response structures.
+
+Do not expose unnecessary database implementation details.
+
+============================================================
+ERROR HANDLING
+============================================================
+
+Implement centralized backend error handling.
+
+Production API responses must NOT expose:
+
+- stack traces
+- SQL/database internals
+- filesystem paths
+- secrets
+- internal implementation details
+
+Frontend should gracefully handle:
+
+- network errors
+- server errors
+- authentication expiration
+- empty results
+- invalid input
+- unavailable products
+- checkout failures
+- payment failures
+
+Do not let one component crash the entire application.
+
+============================================================
+ENVIRONMENT CONFIGURATION
+============================================================
+
+Use environment variables for:
+
+- database URL
+- authentication secrets
+- frontend URL
+- backend URL
+- payment credentials
+- storage credentials
+- email credentials
+- other secrets
+
+Provide:
+
+backend/.env.example
+
+Do NOT commit real `.env` files containing secrets.
+
+If the frontend requires environment variables, use the framework's proper public environment-variable mechanism and NEVER expose private secrets.
+
+============================================================
+README — PROJECT DOCUMENTATION
+============================================================
+
+The ROOT `/README.md` is extremely important.
+
+This README should document the ENTIRE PROJECT clearly enough that a new developer can clone the repository and understand how the system works.
+
+Do not create a useless README containing only:
+
+"npm install"
+"npm run dev"
+
+The README must explain the actual project.
+
+Include:
+
+1. PROJECT OVERVIEW
+
+Explain:
+- what the ecommerce platform is
+- what it does
+- its major capabilities
+- intended production use
+
+2. TECHNOLOGY STACK
+
+Document:
+
+- React
+- Vite
+- JavaScript
+- Fastify
+- Node.js
+- PostgreSQL
+- Supabase
+- Prisma
+- Zod
+- payment provider
+- storage provider
+- any other actual dependencies
+
+3. PROJECT STRUCTURE
+
+Explain:
+
+/
+├── frontend/
+├── backend/
+└── README.md
+
+Explain the purpose of important directories/files.
+
+4. SYSTEM ARCHITECTURE
+
+Explain how:
+
+Customer
+→ Frontend
+→ Backend API
+→ Prisma
+→ PostgreSQL
+
+and:
+
+Frontend
+→ Backend
+→ Storage provider
+
+work.
+
+Include an architecture diagram using Markdown if useful.
+
+5. DATABASE ARCHITECTURE
+
+Explain:
+
+- major entities
+- relationships
+- important constraints
+- inventory handling
+- order structure
+- payment structure
+- CMS structure
+
+6. FRONTEND ARCHITECTURE
+
+Explain:
+- routing
+- components
+- state
+- API layer
+- pages
+- admin section
+- design preservation strategy
+
+7. BACKEND ARCHITECTURE
+
+Explain:
+- routes
+- controllers
+- services
+- middleware
+- validators
+- database layer
+- authentication
+- authorization
+
+8. AUTHENTICATION
+
+Explain:
+- customer authentication
+- admin authentication
+- sessions/cookies
+- roles
+- authorization
+
+9. ECOMMERCE FLOW
+
+Document:
+
+Product browsing
+→ Cart
+→ Checkout
+→ Payment
+→ Order
+→ Inventory
+→ Order management
+
+10. ADMIN/CMS
+
+Explain how the owner updates:
+
+- products
+- inventory
+- orders
+- customers
+- page content
+- images
+- promotions
+
+11. ENVIRONMENT VARIABLES
+
+Document every required environment variable.
+
+Example:
+
+DATABASE_URL=
+AUTH_SECRET=
+FRONTEND_URL=
+BACKEND_URL=
+
+Do not put real credentials in README.
+
+12. LOCAL DEVELOPMENT
+
+Explain exact setup:
+
+- prerequisites
+- installing dependencies
+- configuring environment
+- database setup
+- Prisma migrations
+- starting backend
+- starting frontend
+
+13. DATABASE MIGRATIONS
+
+Explain how to:
+
+- create migrations
+- apply migrations
+- inspect database
+- regenerate Prisma client
+
+14. PRODUCTION DEPLOYMENT
+
+Document:
+
+- frontend deployment
+- backend deployment
+- database
+- storage
+- environment variables
+- domain configuration
+- CORS
+- HTTPS
+- production build
+- migrations
+
+15. SECURITY
+
+Document major security measures.
+
+16. PERFORMANCE
+
+Document major performance considerations.
+
+17. TESTING
+
+Explain how tests/lint/build checks are executed.
+
+18. TROUBLESHOOTING
+
+Document common setup/runtime problems.
+
+19. CONTRIBUTION / DEVELOPMENT RULES
+
+Document rules such as:
+
+- do not redesign existing pages without justification
+- do not commit secrets
+- do not introduce unnecessary dependencies
+- maintain validation
+- maintain tests
+- maintain database migrations
+
+20. PRODUCTION CHECKLIST
+
+Include a checklist for:
+
+- environment variables
+- database
+- authentication
+- payments
+- storage
+- HTTPS
+- CORS
+- backups
+- monitoring
+- error handling
+- performance
+- security
+- database migrations
+- frontend build
+- backend build
+- domain
+- deployment
+
+The README must describe the ACTUAL implementation.
+
+Never document features that do not exist.
+
+Update the README whenever the architecture changes significantly.
+
+============================================================
+BACKEND README
+============================================================
+
+Also create:
+
+/backend/README.md
+
+It should focus specifically on backend development:
+
+- backend architecture
+- API structure
+- database
+- Prisma
+- environment variables
+- authentication
+- development
+- testing
+- deployment
+- migrations
+
+The root README remains the main project documentation.
+
+============================================================
+CODE QUALITY
+============================================================
+
+The final codebase must contain no intentional dead code.
+
+Remove:
+
+- unused imports
+- unused variables
+- unused functions
+- unused components
+- unused routes
+- unused dependencies
+- obsolete configurations
+- debugging statements
+- duplicate utilities
+- obsolete mock data
+- unused assets
+- Figma Make residue that is no longer needed
+
+Use clear naming.
+
+Avoid massive files.
+
+Avoid unnecessary abstraction.
+
+Avoid over-engineering.
+
+Avoid duplicated business logic.
+
+Business rules should live in the backend, not duplicated across frontend components.
+
+============================================================
+GIT SAFETY
+============================================================
+
+The existing Git repository must remain intact.
+
+Do NOT:
+
+- delete `.git`
+- reinitialize Git
+- destroy commit history
+- overwrite unrelated changes
+- reset user work without explicit instruction
+
+Inspect Git status before major modifications.
+
+============================================================
+TESTING & FINAL VERIFICATION
+============================================================
+
+Before declaring the project complete, verify:
+
+FRONTEND:
+- build succeeds
+- no obvious console errors
+- routes work
+- existing pages remain visually intact
+- responsive behavior works
+- API integration works
+- admin UI works
+
+BACKEND:
+- starts successfully
+- database connection works
+- migrations work
+- authentication works
+- authorization works
+- validation works
+- error handling works
+- APIs return correct responses
+
+DATABASE:
+- schema is valid
+- migrations work
+- relations work
+- indexes exist where needed
+- transactions are used where required
+- inventory consistency is maintained
+
+ECOMMERCE:
+- registration
+- login
+- logout
+- product browsing
+- search
+- filtering
+- cart
+- inventory
+- checkout
+- payment flow
+- orders
+- reviews
+- wishlist
+- coupons
+- admin product management
+- admin order management
+- admin content management
+
+SECURITY:
+- unauthorized admin requests rejected
+- users cannot access other users' protected data
+- frontend cannot manipulate prices
+- frontend cannot manipulate inventory
+- secrets are not exposed
+- invalid input is rejected
+- sensitive errors are not exposed
+
+PERFORMANCE:
+- no unnecessary API requests
+- no obvious N+1 queries
+- no unnecessary dependencies
+- no obvious dead code
+- images are optimized
+- frontend bundle is reasonable
+
+============================================================
+FINAL CLEANUP AUDIT
+============================================================
+
+Before finishing, perform a final audit of the ENTIRE repository.
+
+Check:
+
+1. Unused dependencies
+2. Unused imports
+3. Dead components
+4. Dead functions
+5. Duplicate logic
+6. Dead CSS
+7. Unused assets
+8. Figma Make residue
+9. Debugging code
+10. Hardcoded secrets
+11. Hardcoded production URLs
+12. Mock data accidentally remaining
+13. Broken routes
+14. Broken API calls
+15. Incorrect environment variables
+16. Database migration issues
+17. Security issues
+18. Performance issues
+19. README accuracy
+20. Git status
+
+Fix everything that can reasonably be fixed.
+
+============================================================
+IMPORTANT WORKING PRINCIPLE
+============================================================
+
+Do not optimize for "how much code can you write."
+
+Optimize for:
+
+CORRECTNESS
+SECURITY
+PERFORMANCE
+MAINTAINABILITY
+SIMPLICITY
+DATA INTEGRITY
+PRODUCTION READINESS
+
+Do not create unnecessary features.
+
+Do not rewrite working code simply because you would personally structure it differently.
+
+Do not redesign the existing frontend.
+
+Do not use fake/mock implementations where real functionality is required.
+
+Do not leave TODOs for core ecommerce functionality.
+
+Do not claim something is production-ready if it has obvious unfinished implementation.
+
+The final result should be a genuinely deployable full-stack ecommerce application with:
+
+- existing frontend design preserved
+- clean React frontend
+- clean Fastify backend
+- PostgreSQL/Supabase database
+- Prisma ORM
+- secure authentication
+- role-based admin
+- ecommerce functionality
+- inventory management
+- order management
+- payment-ready architecture
+- CMS/content management
+- secure media handling
+- optimized performance
+- responsive UI
+- clean code
+- minimal dependencies
+- proper documentation
+- production deployment readiness
+
+START BY INSPECTING THE EXISTING PROJECT.
+
+Do not immediately rewrite files.
+
+Understand what already exists, then implement the required architecture around it.

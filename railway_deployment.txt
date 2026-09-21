@@ -1,0 +1,600 @@
+===============================================================================
+ KABEER — THE ETHNIC STORE
+ Deploying /backend to RAILWAY (Production)
+===============================================================================
+
+This is the PRODUCTION deployment. It serves real customers and takes real
+money. The development deployment on Render is documented separately in
+render_deployment.txt; section 18 lists exactly what differs.
+
+Everything below matches this repository: the scripts in backend/package.json,
+the variables validated by backend/src/config/env.js, and the /health route in
+backend/src/app.js.
+
+
+-------------------------------------------------------------------------------
+ 0. WHAT YOU ARE DEPLOYING
+-------------------------------------------------------------------------------
+
+  /backend    a single long-running Node process (Fastify)
+              binds 0.0.0.0 on $PORT
+              Supabase PostgreSQL via Prisma
+              Supabase Storage over REST
+              Razorpay over REST, plus a signed webhook endpoint
+
+  One service. Nothing else.
+
+  Do NOT add a Railway PostgreSQL plugin, a Redis service, a cron service or a
+  separate worker. The database is Supabase (the Prisma schema and every
+  connection string point there), sessions live in PostgreSQL rather than Redis,
+  and the periodic stock-reservation sweep runs in-process (see section 15).
+  Adding infrastructure this application does not use costs money and creates
+  a second source of truth.
+
+
+-------------------------------------------------------------------------------
+ 1. PREREQUISITES
+-------------------------------------------------------------------------------
+
+  [ ] GitHub repository pushed, production branch decided (main below)
+  [ ] Railway account with a paid plan or trial credit
+        https://railway.app
+  [ ] A SEPARATE Supabase project for production
+        Do not share the development database. A stray `db:seed --force` or a
+        test order must never be able to touch real customer data.
+  [ ] Razorpay LIVE keys (KYC completed and account activated)
+  [ ] A domain you control, for api.yourdomain.com
+  [ ] A fresh production AUTH_SECRET — NOT the development one:
+        node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+
+  Supabase region: every request makes several database round trips, so choose
+  the region nearest your customers. Measured from India: ap-south-1 ~75ms,
+  ap-southeast-1 ~119ms, ap-northeast-1 ~196ms. Choose the Railway region to
+  match. A Supabase project's region cannot be changed after creation, so this
+  is a one-shot decision.
+
+
+-------------------------------------------------------------------------------
+ 2. CONNECT GITHUB
+-------------------------------------------------------------------------------
+
+  Railway -> New Project -> Deploy from GitHub repo -> authorise -> pick the
+  repository.
+
+  Railway will create a service and immediately try to build from the repo
+  root. That will not work for a monorepo until you set the root directory in
+  section 3, so expect the first build to fail. That is fine.
+
+
+-------------------------------------------------------------------------------
+ 3. SERVICE CONFIGURATION
+-------------------------------------------------------------------------------
+
+  Open the service -> Settings.
+
+  Source
+      Branch                 main
+      Root Directory         backend
+      Wait for CI            on, if you run CI on the repo
+
+  Build
+      Builder                Nixpacks (default)
+      Build Command          npm ci && npx prisma generate
+      Watch Paths            backend/**
+                             (so a frontend-only commit does not redeploy the API)
+
+  Deploy
+      Pre-Deploy Command     npx prisma migrate deploy
+      Start Command          npm start
+      Healthcheck Path       /health
+      Healthcheck Timeout    120
+      Restart Policy         ON_FAILURE, max 10 retries
+
+  `npm start` is `node src/server.js` (backend/package.json).
+
+  Migrations belong in the PRE-DEPLOY command, not the build command. Railway
+  runs pre-deploy once per deployment, after the build and before the new
+  container takes traffic. Putting it in the build would run it on every build
+  including cancelled ones, and — with more than one replica — concurrently.
+  (Render's free plan has no pre-deploy step, which is why render_deployment.txt
+  puts migrations in the build command instead.)
+
+
+-------------------------------------------------------------------------------
+ 4. NODE VERSION
+-------------------------------------------------------------------------------
+
+  backend/package.json declares:
+
+      "engines": { "node": ">=20.12" }
+
+  20.12 is a hard floor — src/config/env.js uses process.loadEnvFile, which
+  does not exist before it. Nixpacks reads `engines`, but pin it explicitly so
+  a future default cannot move under you:
+
+      NIXPACKS_NODE_VERSION = 22
+
+  (Setting NODE_VERSION also works. Do not go below 20.12.)
+
+
+-------------------------------------------------------------------------------
+ 5. ENVIRONMENT VARIABLES
+-------------------------------------------------------------------------------
+
+  Service -> Variables. Every name is read and validated by
+  backend/src/config/env.js; the process refuses to boot on an invalid value
+  and names the offending variable.
+
+  ---- required ---------------------------------------------------------------
+
+    NODE_ENV                   production
+    DATABASE_URL               (see 6)
+    DIRECT_URL                 (see 6)
+    AUTH_SECRET                fresh 48-byte value, NOT the dev one
+    CORS_ORIGINS               https://kabeer.com,https://www.kabeer.com
+    FRONTEND_URL               https://kabeer.com
+    COOKIE_SAMESITE            lax        (see the note below)
+    COOKIE_DOMAIN              .kabeer.com
+    COOKIE_SECURE              true
+
+  Cookie strategy. In production put the API on a subdomain of the storefront's
+  domain — storefront kabeer.com, API api.kabeer.com. They then share a site, so
+  the session cookie can be SameSite=Lax with COOKIE_DOMAIN=.kabeer.com. That is
+  strictly safer than the cross-site setup development uses, and it survives
+  browsers tightening third-party cookie rules.
+
+  Only if the API must live on an unrelated domain:
+
+    COOKIE_SAMESITE            none
+    COOKIE_SECURE              true
+    COOKIE_DOMAIN              (leave unset)
+
+  env.js refuses to start if SameSite=none is paired with COOKIE_SECURE=false.
+
+  ---- storage ----------------------------------------------------------------
+
+    SUPABASE_URL               https://<prod-project-ref>.supabase.co
+    SUPABASE_SECRET_KEY        sb_secret_...        (see 7)
+    SUPABASE_STORAGE_BUCKET    product-media
+
+  ---- payments — LIVE credentials --------------------------------------------
+
+    RAZORPAY_KEY_ID            rzp_live_...
+    RAZORPAY_KEY_SECRET        ...
+    RAZORPAY_WEBHOOK_SECRET    ...                  (see 12)
+
+  Verify these are rzp_live_, not rzp_test_. With test keys the checkout looks
+  like it works and no money moves.
+
+  ---- commercial rules — set these deliberately -------------------------------
+
+    TAX_PERCENT                5        percent, applied AFTER discount
+    SHIPPING_FLAT              0        paise, e.g. 9900 for a flat 99 rupees
+    FREE_SHIPPING_THRESHOLD    0        paise; 0 disables the threshold
+    ORDER_RESERVATION_MINUTES  30       how long an unpaid order holds stock
+
+  These are money. Defaults are inherited silently if unset, so set them
+  explicitly even where the default is what you want.
+
+  ---- operational, defaults are fine -----------------------------------------
+
+    PORT                       injected by Railway. Do NOT set it.
+    HOST                       0.0.0.0 (default, leave unset)
+    LOG_LEVEL                  info
+    SESSION_TTL_DAYS           30
+    MAX_UPLOAD_BYTES           5242880
+    MAX_BODY_BYTES             1048576
+
+  ---- NOT set in production --------------------------------------------------
+
+    SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / SEED_ADMIN_NAME
+        Only read by `npm run db:seed`. Leave them unset here so a seeding
+        password never sits in the production environment. See section 11.
+
+    SUPABASE_SERVICE_ROLE_KEY
+        Deprecated legacy fallback. Use SUPABASE_SECRET_KEY.
+
+
+-------------------------------------------------------------------------------
+ 6. SUPABASE POSTGRESQL CONNECTION
+-------------------------------------------------------------------------------
+
+  Supabase Dashboard (PRODUCTION project) -> Connect -> ORMs.
+
+  Copy the SESSION POOLER string into both:
+
+    DATABASE_URL
+      postgresql://postgres.<prod-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?connection_limit=10&connect_timeout=30
+
+    DIRECT_URL
+      postgresql://postgres.<prod-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?connect_timeout=30
+
+  The same four traps as development, and they cost more here:
+
+  (a) NOT the "Direct connection" host (db.<ref>.supabase.co). It resolves to
+      IPv6 only and fails with P1001 from most networks and build environments.
+          nslookup -type=A db.<ref>.supabase.co          -> no answer
+          nslookup -type=A aws-0-<region>.pooler.supabase.com -> answers
+
+  (b) Username is postgres.<project-ref>, not postgres. Copy the whole string;
+      the host prefix is not always "aws-0" (newer projects use "aws-1").
+
+  (c) SESSION pooler (5432), not transaction pooler (6543). This is one
+      long-running process with a stable pool. The transaction pooler checks
+      out a backend per transaction and measured ~5x slower per query
+      (905ms vs 180ms) across regions. Only move to 6543 with
+      `pgbouncer=true&connection_limit=1` if you ever run this on serverless.
+
+  (d) connect_timeout=30. Prisma defaults to 5s, which surfaces as P1001 even
+      when the network is healthy. If raising it changes P1001 into P1000, the
+      network was fine and the password is wrong.
+
+  connection_limit=10 is Prisma's pool size per instance. Session mode holds a
+  real backend per pooled connection, so if you scale to N replicas you are
+  holding 10*N backends — check that against your Supabase plan's limit before
+  scaling, and lower connection_limit rather than raising the plan.
+
+  Percent-encode any of @ : / ? # % & in the password.
+
+
+-------------------------------------------------------------------------------
+ 7. SUPABASE STORAGE
+-------------------------------------------------------------------------------
+
+  In the PRODUCTION project: Storage -> New bucket.
+
+      Name                 product-media
+      Public bucket        YES (shoppers must load product images)
+      File size limit      5 MB   (match MAX_UPLOAD_BYTES)
+      Allowed MIME types   image/jpeg, image/png, image/webp, image/avif
+
+  Project Settings -> API Keys -> Secret keys -> copy sb_secret_... into
+  SUPABASE_SECRET_KEY.
+
+  This key bypasses row-level security. It is server-only and must never appear
+  in any VITE_ variable, in the frontend build, or in the repository. env.js
+  rejects a publishable key in this slot at boot.
+
+  Rotation without downtime: create a second secret key, deploy it, then revoke
+  the old one. Unlike the legacy service_role key there is no forced cutover.
+
+  Uploads are validated by magic bytes rather than filename, the object key is
+  generated server-side, and PostgreSQL stores only the public URL and object
+  path.
+
+
+-------------------------------------------------------------------------------
+ 8. CORS
+-------------------------------------------------------------------------------
+
+    CORS_ORIGINS = https://kabeer.com,https://www.kabeer.com
+
+  Exact browser origins, comma separated: scheme + host + port, no trailing
+  slash, no wildcards. Include the www variant only if you actually serve it
+  rather than redirecting it.
+
+  This list backs both @fastify/cors and the CSRF guard in
+  backend/src/middleware/csrf.js, which rejects any state-changing request whose
+  Origin is not on it:
+
+      403 {"error":{"code":"FORBIDDEN","message":"Request origin is not allowed"}}
+
+  Do NOT include Cloudflare preview URLs in production. Point previews at the
+  development API instead — otherwise any preview build, including from an
+  unreviewed branch, can drive the live store.
+
+
+-------------------------------------------------------------------------------
+ 9. FRONTEND / BACKEND URLS
+-------------------------------------------------------------------------------
+
+  Backend knows the storefront:
+
+    FRONTEND_URL = https://kabeer.com
+
+  Storefront knows the backend. In Cloudflare Pages -> Production environment:
+
+    VITE_API_URL = https://api.kabeer.com/api
+
+  The /api suffix is required: every route is registered under /api
+  (backend/src/routes/index.js). /health is deliberately outside it.
+
+  VITE_ values are compiled into the bundle at build time, so changing
+  VITE_API_URL needs a new Cloudflare deployment, not a restart.
+
+
+-------------------------------------------------------------------------------
+ 10. DOMAIN, HTTPS AND PROXYING
+-------------------------------------------------------------------------------
+
+  1. Railway -> Settings -> Networking -> Custom Domain -> api.kabeer.com
+  2. Railway shows a CNAME target. At your DNS provider:
+
+         Type   CNAME
+         Name   api
+         Value  <the value Railway shows>
+
+     On Cloudflare DNS set the record to "DNS only" (grey cloud). Proxying
+     through Cloudflare in front of Railway adds a second TLS hop and a second
+     set of timeouts for no benefit here; Railway already terminates TLS.
+
+  3. Railway issues and renews the certificate automatically once DNS resolves.
+     There is no HTTP listener to configure — the platform terminates TLS and
+     forwards plain HTTP to the container.
+
+  4. The app sets trustProxy, so request.ip follows X-Forwarded-For. This
+     matters: rate limiting keys on it, and without trustProxy every request
+     would appear to come from one address.
+
+  Verify the certificate:
+
+      curl -sSI https://api.kabeer.com/health | head -1
+
+
+-------------------------------------------------------------------------------
+ 11. MIGRATIONS AND SEEDING
+-------------------------------------------------------------------------------
+
+  MIGRATIONS run automatically as the Pre-Deploy Command (section 3):
+
+      npx prisma migrate deploy
+
+  It applies only pending migrations from backend/prisma/migrations/, never
+  generates new ones, and never drops data. If it fails, Railway aborts the
+  deployment and keeps the previous version running.
+
+  Adopting a database that already has the schema but no _prisma_migrations
+  table — run once, locally, pointed at production:
+
+      cd backend
+      npx prisma migrate resolve --applied 20260920000000_init
+
+  SEEDING. A production store usually should NOT be seeded — the seed installs
+  a demo catalogue of 22 products and placeholder page content. Enter the real
+  catalogue through the admin instead.
+
+  You do need the CMS pages and the first administrator. Two options:
+
+    (a) Seed once, from your machine, against production, then replace the demo
+        catalogue through the admin:
+
+            cd backend
+            # a local .env pointing at the PRODUCTION database, with
+            # SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD set
+            npm run db:seed
+
+    (b) Railway shell:
+
+            railway run npm run db:seed
+
+  Either way, remove SEED_ADMIN_PASSWORD from wherever you put it afterwards,
+  and change the password from the admin profile page on first sign-in.
+
+  db:seed is CREATE-ONLY: it creates only what is missing and never overwrites
+  an existing record, so it cannot undo catalogue edits, uploaded images or page
+  content. That makes it safe to leave in a pipeline.
+
+  `npm run db:seed -- --force` DOES overwrite seeded records and deletes
+  uploaded images on them. NEVER run --force against production.
+
+
+-------------------------------------------------------------------------------
+ 12. RAZORPAY WEBHOOK
+-------------------------------------------------------------------------------
+
+  Razorpay Dashboard (LIVE mode) -> Settings -> Webhooks -> Add New Webhook:
+
+      URL      https://api.kabeer.com/api/webhooks/razorpay
+      Events   payment.captured
+               payment.failed
+               order.paid
+      Secret   a strong random string
+
+  Put that string in RAZORPAY_WEBHOOK_SECRET.
+
+  This endpoint is the safety net. If a customer closes the browser between
+  paying and the success callback, the webhook is what confirms the order. It
+  is exempt from the CORS/Origin checks because it authenticates by HMAC over
+  the raw request body, and it is deduplicated by event id in the WebhookEvent
+  table, so retries are no-ops.
+
+  Send a test event from the dashboard and confirm a 200. A 400 means the
+  secret does not match.
+
+
+-------------------------------------------------------------------------------
+ 13. HEALTH CHECKS
+-------------------------------------------------------------------------------
+
+  Healthcheck Path: /health
+
+  GET /health runs `SELECT 1` against PostgreSQL, so it reports unhealthy when
+  the database is unreachable rather than returning a false OK. Railway will not
+  route traffic to a new deployment until it passes, which means a deploy with a
+  broken DATABASE_URL never replaces the running version.
+
+  Set the timeout to 120s. First boot has to establish a TLS connection to
+  Supabase, which is slower than a warm request.
+
+      {"status":"ok","uptime":37}
+
+
+-------------------------------------------------------------------------------
+ 14. VERIFY THE DEPLOYMENT
+-------------------------------------------------------------------------------
+
+  1) Health
+
+       curl https://api.kabeer.com/health
+       -> {"status":"ok","uptime":...}
+
+  2) Catalogue
+
+       curl https://api.kabeer.com/api/categories
+       curl "https://api.kabeer.com/api/products?limit=3"
+
+  3) LIVE payments are on
+
+       curl https://api.kabeer.com/api/payments/config
+       -> {"data":{"provider":"razorpay","enabled":true,"currency":"INR"}}
+
+  4) Admin is protected — MUST be 401
+
+       curl -i https://api.kabeer.com/api/admin/dashboard
+
+  5) CSRF guard — MUST be 403
+
+       curl -i -X POST https://api.kabeer.com/api/auth/login \
+         -H "Origin: https://evil.example" -H "Content-Type: application/json" \
+         -d '{"email":"a@b.com","password":"whatever12345"}'
+
+  6) Security headers present
+
+       curl -sSI https://api.kabeer.com/health | grep -i "x-frame\|x-content"
+
+  7) One real low-value order, end to end: place it, pay it, confirm the order
+     shows PAID in /admin, and confirm stock decremented. Then refund it from
+     the Razorpay dashboard and mark the payment refunded in the admin.
+
+  8) Overselling guard: set a product's stock to 1 and try to buy it from two
+     browsers at once. One succeeds, the other is told it is gone.
+
+
+-------------------------------------------------------------------------------
+ 15. LOGS AND OBSERVABILITY
+-------------------------------------------------------------------------------
+
+  Railway -> service -> Deployments -> View Logs (or `railway logs`).
+
+  Output is structured JSON from Pino. Fields: level (30 info, 40 warn,
+  50 error), reqId, req.method, req.url, res.statusCode, responseTime.
+
+  Cookies and authorization headers are redacted at the logger, and
+  req.body.password is redacted, so credentials never reach the log.
+
+  Filter for problems:
+
+      railway logs | grep '"level":50'
+
+  Error responses never contain stack traces, SQL or file paths in production —
+  those stay in the log. If you see a stack trace in an HTTP response, NODE_ENV
+  is not set to production.
+
+  Worth alerting on:
+      - sustained "level":50
+      - /health failing
+      - responseTime climbing (usually a database region or pool problem)
+      - "Maintenance sweep failed" — the stock-reservation release is broken,
+        so abandoned checkouts will hold stock indefinitely
+
+  The maintenance sweep (releasing stock from unpaid orders, purging dead
+  sessions) runs on a 5-minute interval INSIDE the process. With a single
+  instance that is correct. If you ever scale beyond one replica, every replica
+  runs it — harmless but wasteful, and at that point move it to a scheduled job.
+
+
+-------------------------------------------------------------------------------
+ 16. ROLLBACK AND REDEPLOYMENT
+-------------------------------------------------------------------------------
+
+  Redeploy:  push to main. Railway builds, runs pre-deploy migrations, waits
+             for /health, then swaps traffic. A failed build or failed
+             healthcheck leaves the current version serving.
+
+  Manual:    Deployments -> Redeploy on any past deployment.
+
+  Rollback:  Deployments -> pick the last good one -> Redeploy / Rollback.
+
+  ROLLBACK IS CODE ONLY. It does not reverse a database migration. If the bad
+  deploy included a migration:
+
+     - additive migration (new column/table): rolling back the code is usually
+       safe, the new column simply goes unused.
+     - destructive migration (dropped or renamed column): the old code will
+       fail against the new schema. You need a database restore from a Supabase
+       backup, not a rollback.
+
+  So: take a Supabase backup before any deploy containing a destructive
+  migration, and prefer additive migrations with a later cleanup.
+
+  Environment variable changes restart the service without rebuilding. Anything
+  VITE_ is a frontend build-time value and belongs in Cloudflare.
+
+
+-------------------------------------------------------------------------------
+ 17. COMMON PROBLEMS
+-------------------------------------------------------------------------------
+
+  Deployment never goes healthy
+      Healthcheck failing. Hit /health and read the log. Usually DATABASE_URL.
+      Raise Healthcheck Timeout to 120 if it is only slow on first boot.
+
+  "Invalid environment configuration"
+      The log names the variable. Commonly AUTH_SECRET under 32 characters, or
+      COOKIE_SAMESITE=none with COOKIE_SECURE=false.
+
+  P1001: Can't reach database server
+      The IPv6-only direct host (section 6a), or connect_timeout too low (6d).
+
+  P1000: Authentication failed
+      Wrong password, or username missing .<project-ref>.
+
+  Customers get logged out immediately
+      Cookie is not being stored. On a shared parent domain check
+      COOKIE_DOMAIN=.kabeer.com and COOKIE_SAMESITE=lax; on unrelated domains
+      check COOKIE_SAMESITE=none plus COOKIE_SECURE=true and HTTPS both sides.
+
+  403 "Request origin is not allowed" from the real storefront
+      The live origin is missing from CORS_ORIGINS, or www vs apex mismatch.
+
+  Payment succeeds but the order stays pending
+      The browser callback did not complete. The webhook should settle it within
+      seconds — check the webhook is registered, reachable, and that
+      RAZORPAY_WEBHOOK_SECRET matches. A 400 on the webhook means it does not.
+
+  Checkout says payments are not configured
+      RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET unset. Deliberate: it refuses rather
+      than pretending to take money.
+
+  Stock held by orders that were never paid
+      Normal for ORDER_RESERVATION_MINUTES, then released by the sweep. If it
+      persists, grep the logs for "Maintenance sweep failed".
+
+  Every request is slow
+      Almost always database distance. Check the Supabase region against your
+      users, and confirm DATABASE_URL is the session pooler on 5432 with
+      connection_limit=10 — not 6543, and never connection_limit=1.
+
+  Rate limiting triggering for everyone at once
+      trustProxy is on, so this should key per client. If all traffic looks
+      like one IP, something is stripping X-Forwarded-For — check you are not
+      double-proxying through Cloudflare (section 10).
+
+
+-------------------------------------------------------------------------------
+ 18. PRODUCTION vs THE RENDER DEVELOPMENT SETUP
+-------------------------------------------------------------------------------
+
+  topic              Render (development)        Railway (production)
+  ----------------   -------------------------   ----------------------------
+  purpose            testing, previews           real customers, real money
+  instance           Free, sleeps after 15 min   always on, no cold start
+  migrations         in the Build Command        Pre-Deploy Command
+                     (free plan has no shell)
+  Supabase project   development project         SEPARATE production project
+  Razorpay keys      rzp_test_...                rzp_live_...
+  AUTH_SECRET        dev value                   different value
+  cookies            SameSite=none + Secure      SameSite=lax + COOKIE_DOMAIN
+                     (unrelated domains)         (API on api.kabeer.com)
+  CORS_ORIGINS       *.pages.dev preview URLs    live origins only
+  domain             kabeer-api-dev.onrender.com api.kabeer.com
+  seeding            fine, it is demo data       avoid; real catalogue via admin
+  webhooks           unreliable (spin-down)      required and reliable
+  backups            not needed                  PITR / scheduled, mandatory
+  NODE_ENV           production                  production
+
+  Two things that are the same in both and are easy to get wrong: NODE_ENV is
+  `production` in BOTH (it controls error verbosity, not the environment's
+  purpose), and neither should ever have PORT set manually.
+
+===============================================================================

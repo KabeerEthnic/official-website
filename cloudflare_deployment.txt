@@ -1,0 +1,414 @@
+===============================================================================
+ KABEER — THE ETHNIC STORE
+ Deploying /frontend to CLOUDFLARE PAGES
+===============================================================================
+
+The storefront and the admin area are one React + Vite single-page app. Pages
+serves it as static files from Cloudflare's CDN; all data comes from the
+backend API (Render for development, Railway for production — see
+render_deployment.txt and railway_deployment.txt).
+
+Everything below matches this repository: the scripts in frontend/package.json,
+the config in frontend/vite.config.js, and the files in frontend/public/.
+
+
+-------------------------------------------------------------------------------
+ 0. WHAT YOU ARE DEPLOYING
+-------------------------------------------------------------------------------
+
+  /frontend    React 18 + Vite 6, plain JavaScript
+               builds to frontend/dist/
+               a single-page app: react-router handles every path in the browser
+               no server, no SSR, no Cloudflare Functions, no Workers
+
+  The build output is HTML + fingerprinted assets. Nothing secret is in it —
+  see section 6.
+
+
+-------------------------------------------------------------------------------
+ 1. PREREQUISITES
+-------------------------------------------------------------------------------
+
+  [ ] GitHub repository pushed
+  [ ] Cloudflare account          https://dash.cloudflare.com  (free plan is enough)
+  [ ] The backend already deployed and reachable over HTTPS.
+      You need its URL before the first build, because VITE_API_URL is compiled
+      into the bundle at BUILD time (section 6).
+  [ ] For a custom domain: the domain added to Cloudflare, i.e. its nameservers
+      pointed at Cloudflare.
+
+
+-------------------------------------------------------------------------------
+ 2. CONNECT GITHUB AND CREATE THE PROJECT
+-------------------------------------------------------------------------------
+
+  Cloudflare Dashboard -> Workers & Pages -> Create -> Pages ->
+  Connect to Git -> authorise GitHub -> select this repository.
+
+  Then "Begin setup" and fill in the build configuration in section 3.
+
+  This is a monorepo. Cloudflare is pointed at the frontend with the Root
+  Directory setting below — do not split the repository.
+
+
+-------------------------------------------------------------------------------
+ 3. BUILD CONFIGURATION
+-------------------------------------------------------------------------------
+
+  Set exactly:
+
+      Project name                 kabeer-store
+      Production branch            main
+
+      Framework preset             Vite
+      Build command                npm run build
+      Build output directory       dist
+      Root directory (advanced)    frontend
+
+  Notes that matter:
+
+  - Build output directory is `dist`, RELATIVE to the root directory. It is
+    `dist`, not `frontend/dist`. Getting this wrong produces a successful build
+    that serves nothing.
+
+  - `npm run build` is `vite build` (frontend/package.json).
+
+  - Cloudflare runs `npm ci` automatically when it sees package-lock.json.
+    Do not prefix the build command with an install step.
+
+  - The "Vite" preset only prefills the command and output directory. Choosing
+    "None" and typing them yourself is equivalent.
+
+
+-------------------------------------------------------------------------------
+ 4. NODE VERSION
+-------------------------------------------------------------------------------
+
+  Pages defaults to an old Node. Set it explicitly as an environment variable
+  (Settings -> Environment variables), for BOTH Production and Preview:
+
+      NODE_VERSION = 22
+
+  Vite 6 needs Node 18+; 22 is current LTS. If the build fails with syntax
+  errors inside node_modules, this is why.
+
+  (A `.nvmrc` in frontend/ would also work. The environment variable is used
+  here so all deployment configuration lives in one place.)
+
+
+-------------------------------------------------------------------------------
+ 5. SPA ROUTING — ALREADY CONFIGURED, DO NOT REMOVE
+-------------------------------------------------------------------------------
+
+  This app owns routes like /shop, /product/:slug, /account and /admin/orders.
+  Those paths do not exist as files. Without a rewrite, loading them directly —
+  or pressing refresh on them, or following a shared link — returns 404 from
+  the CDN.
+
+  frontend/public/_redirects handles it and Vite copies it into dist/:
+
+      /*    /index.html   200
+
+  Status 200, not 301/302: the URL must stay as typed so react-router can read
+  it. Verify after any deploy:
+
+      curl -sSI https://kabeer-store.pages.dev/shop | head -1
+      -> HTTP/2 200          (404 means the file is missing from the build)
+
+  There is no Functions directory and no _worker.js. This is a purely static
+  deployment.
+
+
+-------------------------------------------------------------------------------
+ 6. ENVIRONMENT VARIABLES
+-------------------------------------------------------------------------------
+
+  Settings -> Environment variables. Cloudflare keeps Production and Preview
+  separate — set both.
+
+  ---- Production --------------------------------------------------------------
+
+      VITE_API_URL   https://api.kabeer.com/api
+      NODE_VERSION   22
+
+  ---- Preview -----------------------------------------------------------------
+
+      VITE_API_URL   https://kabeer-api-dev.onrender.com/api
+      NODE_VERSION   22
+
+  Point previews at the DEVELOPMENT API. A preview build from an unreviewed
+  branch must not be able to drive the live store — and the production API's
+  CORS_ORIGINS should not list preview hostnames.
+
+  THE /api SUFFIX IS REQUIRED. Every backend route is registered under /api
+  (backend/src/routes/index.js). Omitting it produces 404s on every call.
+  /health is deliberately outside /api and is not used by the frontend.
+
+  BUILD TIME, NOT RUN TIME. Vite compiles VITE_ values into the bundle. Changing
+  VITE_API_URL requires a NEW DEPLOYMENT to take effect — a retry of the cached
+  build will not pick it up. Use "Retry deployment" only after confirming it
+  rebuilds, or push a commit.
+
+  ---- WHAT MUST NEVER GO HERE -------------------------------------------------
+
+  Vite exposes every VITE_-prefixed variable to the browser, in plain text, in
+  a file anyone can download. The following are server-only and belong in
+  Render/Railway, never in Cloudflare:
+
+      DATABASE_URL / DIRECT_URL          database credentials
+      AUTH_SECRET                        session signing key
+      SUPABASE_SECRET_KEY                bypasses row-level security
+      SUPABASE_SERVICE_ROLE_KEY          legacy equivalent
+      RAZORPAY_KEY_SECRET                payment secret
+      RAZORPAY_WEBHOOK_SECRET            webhook signing secret
+
+  Razorpay's PUBLIC key id is not configured here either — the frontend fetches
+  it from the API at checkout time, so there is nothing payment-related to set.
+
+  The only two variables this project needs in Cloudflare are VITE_API_URL and
+  NODE_VERSION. If you find yourself adding a third that contains a secret,
+  stop.
+
+  Audit any build:
+
+      curl -s https://kabeer-store.pages.dev/assets/index-*.js | grep -c "sb_secret_\|rzp_live\|postgresql://"
+      -> 0
+
+
+-------------------------------------------------------------------------------
+ 7. BACKEND CORS — THE OTHER HALF OF THE WIRING
+-------------------------------------------------------------------------------
+
+  Setting VITE_API_URL is only one direction. The backend must also allow this
+  origin, or every request fails with 403 "Request origin is not allowed".
+
+  On the backend (Railway for production):
+
+      CORS_ORIGINS = https://kabeer.com,https://www.kabeer.com
+      FRONTEND_URL = https://kabeer.com
+
+  On the development backend (Render), include the Pages URLs used for previews:
+
+      CORS_ORIGINS = https://kabeer-store.pages.dev,https://<branch>.kabeer-store.pages.dev
+
+  Exact origins: scheme + host, no trailing slash, no wildcard. Every preview
+  branch gets its own hostname, which is the main reason previews point at the
+  development API.
+
+  Cookies: the session cookie is set by the API, not by Pages. If the API is on
+  a subdomain of the storefront's domain (api.kabeer.com + kabeer.com) the
+  backend should use COOKIE_SAMESITE=lax with COOKIE_DOMAIN=.kabeer.com. On
+  unrelated domains it needs COOKIE_SAMESITE=none and COOKIE_SECURE=true. See
+  railway_deployment.txt section 5.
+
+
+-------------------------------------------------------------------------------
+ 8. CUSTOM DOMAIN
+-------------------------------------------------------------------------------
+
+  Pages project -> Custom domains -> Set up a custom domain -> kabeer.com.
+
+  If the domain is already on Cloudflare (nameservers pointed at Cloudflare),
+  the DNS record is created for you — usually a CNAME on the apex, flattened
+  automatically. Nothing to do by hand.
+
+  For www as well, add www.kabeer.com as a second custom domain, then decide
+  which is canonical and redirect the other (Rules -> Redirect Rules). Serving
+  both without a redirect splits SEO and means both must appear in CORS_ORIGINS.
+
+  If the domain is NOT on Cloudflare, add the CNAME the dashboard shows at your
+  DNS provider:
+
+      Type   CNAME
+      Name   @  (or www)
+      Value  kabeer-store.pages.dev
+
+  After the domain is live, update the backend's CORS_ORIGINS and FRONTEND_URL
+  to the new origin and redeploy the API.
+
+
+-------------------------------------------------------------------------------
+ 9. HTTPS
+-------------------------------------------------------------------------------
+
+  Cloudflare issues and renews the certificate automatically once the custom
+  domain validates. Usually a minute or two; occasionally longer.
+
+  Recommended settings under SSL/TLS for the zone:
+
+      SSL/TLS encryption mode          Full (strict)
+      Always Use HTTPS                 On
+      Automatic HTTPS Rewrites         On
+      Minimum TLS Version              1.2
+
+  HTTPS is not optional for this app: the session cookie is Secure, so it is
+  simply not stored over plain HTTP and nobody can stay signed in.
+
+
+-------------------------------------------------------------------------------
+ 10. CACHING AND CDN
+-------------------------------------------------------------------------------
+
+  frontend/public/_headers ships with the project and Vite copies it into dist/:
+
+      /assets/*
+        Cache-Control: public, max-age=31536000, immutable
+
+      /index.html
+        Cache-Control: public, max-age=0, must-revalidate
+
+      /
+        Cache-Control: public, max-age=0, must-revalidate
+
+  The reasoning: Vite fingerprints every file in /assets (index-CXSSYcK_.js and
+  so on), so a given filename can never change content and is safe to cache for
+  a year. index.html must NOT be cached, or browsers keep loading the old
+  bundle after a deploy and never see the new fingerprints.
+
+  Do not add an aggressive "Cache Everything" page rule over index.html — that
+  is the one file that must stay fresh.
+
+  API responses are not cached by Pages; they do not pass through it at all.
+  The browser talks to the API host directly. The backend sets its own
+  Cache-Control on CMS page content.
+
+  After deploying, if you still see an old build: Caching -> Configuration ->
+  Purge Everything, then hard-reload.
+
+
+-------------------------------------------------------------------------------
+ 11. VERIFY THE DEPLOYMENT
+-------------------------------------------------------------------------------
+
+  1) The site loads
+
+       curl -sSI https://kabeer-store.pages.dev | head -1
+       -> HTTP/2 200
+
+  2) SPA routing works on a deep link (the classic Pages mistake)
+
+       curl -sSI https://kabeer-store.pages.dev/shop | head -1
+       curl -sSI https://kabeer-store.pages.dev/admin/orders | head -1
+       -> HTTP/2 200 for both, NOT 404
+
+  3) Assets are cached immutably
+
+       curl -sSI https://kabeer-store.pages.dev/assets/index-*.js | grep -i cache-control
+       -> public, max-age=31536000, immutable
+
+  4) index.html is not cached
+
+       curl -sSI https://kabeer-store.pages.dev/ | grep -i cache-control
+       -> public, max-age=0, must-revalidate
+
+  5) No secrets in the bundle
+
+       curl -s https://kabeer-store.pages.dev/assets/index-*.js | grep -c "sb_secret_\|rzp_live\|postgresql://"
+       -> 0
+
+  6) The API is wired correctly. Open the site, then DevTools -> Network:
+       - requests go to your API host, not to the Pages origin
+       - /api/categories and /api/pages/home return 200
+       - no CORS errors in the console
+
+  7) End to end in the browser: homepage renders CMS content, /shop lists
+     products, register, add to cart, sign in as admin, open /admin, upload an
+     image, refresh the page (SPA routing again).
+
+  8) Lighthouse (Chrome DevTools, mobile, incognito) against the deployed URL —
+     not localhost, which has no compression or CDN.
+
+
+-------------------------------------------------------------------------------
+ 12. REDEPLOYING AFTER GIT CHANGES
+-------------------------------------------------------------------------------
+
+  Automatic:
+
+      git push origin main          -> production deployment
+      git push origin <branch>      -> preview deployment at
+                                       https://<branch>.kabeer-store.pages.dev
+      open a pull request           -> Cloudflare comments the preview URL
+
+  Manual: Deployments -> ... -> Retry deployment.
+
+  Rollback: Deployments -> pick a previous successful one -> "Rollback to this
+  deployment". Instant, because every deployment is retained as immutable
+  static output. Unlike the backend there is no database involved, so a
+  frontend rollback is genuinely safe and reversible.
+
+  A frontend-only change needs no backend redeploy — UNLESS you changed
+  VITE_API_URL, which is compiled in and needs a rebuild (section 6).
+
+  To stop frontend commits triggering backend deploys, set Watch Paths on the
+  Railway service (railway_deployment.txt section 3). Pages itself rebuilds on
+  any push to a watched branch; if that becomes noisy, configure build watch
+  paths under Settings -> Builds.
+
+
+-------------------------------------------------------------------------------
+ 13. COMMON PROBLEMS
+-------------------------------------------------------------------------------
+
+  Build fails with syntax errors inside node_modules
+      NODE_VERSION not set, so Pages used an old Node. Section 4.
+
+  Build succeeds but the site is blank / "Nothing is here yet"
+      Build output directory is wrong. It must be `dist`, relative to the root
+      directory — not `frontend/dist`.
+
+  Homepage works, /shop returns 404 on refresh
+      _redirects missing from the build output. Confirm frontend/public/_redirects
+      exists, and that `ls dist` shows _redirects after a local `npm run build`.
+
+  Every API call fails with a CORS error
+      The backend does not list this origin. Add it to CORS_ORIGINS on the API
+      and redeploy the API. Preview URLs each have their own hostname.
+
+  API calls 404 against the Pages domain itself
+      VITE_API_URL was unset at build time, so the client fell back to the
+      relative `/api`, which only exists behind the dev server proxy. Set it and
+      rebuild.
+
+  API calls go to the right host but every path 404s
+      VITE_API_URL is missing the /api suffix.
+
+  Sign-in appears to work, then everything is 401
+      The session cookie is not being stored. This is backend cookie
+      configuration, not Pages — section 7 and railway_deployment.txt.
+
+  Changed VITE_API_URL but the site still calls the old host
+      A cached build was reused, or the browser cached index.html. Push a commit
+      to force a rebuild, then purge the cache.
+
+  Old version keeps loading after a deploy
+      index.html got cached somewhere. Check the _headers rules landed
+      (section 11 check 4) and purge.
+
+  Images do not load in the admin or on product pages
+      Not a Pages problem. The Supabase storage bucket is missing or not public
+      — see the backend deployment docs.
+
+  Fonts flash then change
+      Expected. The font link uses display=swap, which renders fallback text
+      immediately rather than leaving it invisible. Preferred over blank text.
+
+
+-------------------------------------------------------------------------------
+ 14. WHAT IS NOT CHANGED BY DEPLOYING
+-------------------------------------------------------------------------------
+
+  The existing frontend architecture is preserved exactly:
+
+    - React + Vite, plain JavaScript, no framework migration
+    - the routing table in src/app/App.jsx, with routes lazy-loaded
+    - Tailwind v4 styling and the per-page designs
+    - the API layer in src/lib/api/, the only place that calls fetch
+    - the Auth / Cart / Wishlist contexts
+    - no SSR, no Workers, no Functions, no edge runtime
+
+  Cloudflare serves the same static output that `npm run build` produces
+  locally. If it works with `npm run build && npm run preview`, it works on
+  Pages.
+
+===============================================================================

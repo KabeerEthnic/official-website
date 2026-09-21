@@ -1,0 +1,456 @@
+// Kabeer — The Ethnic Store
+//
+// Money convention: every monetary column is an Int holding PAISE (INR 1 = 100).
+// Integer minor units keep all pricing, discount and tax arithmetic exact and
+// match what Razorpay expects on the wire. Formatting happens in the UI.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Both point at Supabase's session pooler (5432). Not the "Direct connection"
+  // host, which is IPv6-only. See .env.example for why the transaction pooler
+  // is the wrong choice for a long-running server.
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  phone        String?
+  role         Role       @default(CUSTOMER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  addresses   Address[]
+  sessions    Session[]
+  carts       Cart[]
+  orders      Order[]
+  reviews     Review[]
+  wishlist    WishlistItem[]
+  redemptions CouponRedemption[]
+
+  @@index([role, status])
+  @@index([createdAt])
+}
+
+/// Opaque server-side sessions. The cookie carries a random token; only its
+/// SHA-256 hash is stored, so a database leak cannot be replayed as a login.
+model Session {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  phone      String
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String
+  country    String   @default("India")
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  /// Merchandising label used on the shop's collection switcher, where the
+  /// design calls for a longer phrase than the plain category name.
+  headline    String?
+  description String?
+  imageUrl    String?
+  position    Int      @default(0)
+  visible     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([visible, position])
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  subtitle    String?
+  description String
+  sku         String        @unique
+  /// Regular price in paise.
+  price       Int
+  /// Optional promotional price in paise; must be below price when set.
+  salePrice   Int?
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  status      ProductStatus @default(DRAFT)
+  /// Merchandising colour facet used by the shop filters.
+  color       String?
+  /// Short badge rendered on product cards ("BESTSELLER", "NEW", ...).
+  tag         String?
+  /// Spec-sheet rows the product page renders: [{ "name": "Fabric", "value": "Silk" }]
+  details     Json          @default("[]")
+  featured    Boolean       @default(false)
+  position    Int           @default(0)
+  ratingAvg   Float         @default(0)
+  reviewCount Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  images     ProductImage[]
+  inventory  Inventory?
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+  wishlist   WishlistItem[]
+
+  @@index([status, categoryId])
+  @@index([status, createdAt])
+  @@index([status, price])
+  @@index([categoryId])
+  @@index([color])
+}
+
+model ProductImage {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url         String
+  /// Object path inside the storage bucket, kept so the file can be deleted.
+  storagePath String?
+  altText     String?
+  position    Int      @default(0)
+  visible     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([productId, position])
+}
+
+/// One row per product. quantity is what is still sellable; reserved is what
+/// an unpaid order currently holds. Both move inside the same transaction so
+/// the pair is always consistent.
+model Inventory {
+  id                String   @id @default(cuid())
+  productId         String   @unique
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity          Int      @default(0)
+  reserved          Int      @default(0)
+  /// Batch size behind the "AVAILABLE: n%" limited-edition indicator.
+  capacity          Int      @default(0)
+  lowStockThreshold Int      @default(3)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+/// A cart belongs either to a signed-in user or to an anonymous browser
+/// session; the guest cart is merged into the user cart on login.
+model Cart {
+  id           String   @id @default(cuid())
+  userId       String?  @unique
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items CartItem[]
+
+  @@index([updatedAt])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([productId])
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  orderNumber   String        @unique
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+
+  /// All amounts in paise. total = subtotal - discount + shipping + tax.
+  subtotal   Int
+  discount   Int     @default(0)
+  shipping   Int     @default(0)
+  tax        Int     @default(0)
+  total      Int
+  currency   String  @default("INR")
+  couponCode String?
+
+  // Shipping snapshot, so later address edits never rewrite order history.
+  contactEmail       String
+  shippingName       String
+  shippingPhone      String
+  shippingLine1      String
+  shippingLine2      String?
+  shippingCity       String
+  shippingState      String
+  shippingPostalCode String
+  shippingCountry    String  @default("India")
+
+  /// Set once reserved stock has been settled (sold or returned), which makes
+  /// cancellation and expiry handling idempotent.
+  inventorySettledAt DateTime?
+  cancelledAt        DateTime?
+  cancelReason       String?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  items      OrderItem[]
+  payments   Payment[]
+  redemption CouponRedemption?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// Nulled if the product is later deleted; the snapshot columns below keep
+  /// the order readable regardless.
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  productName String
+  productSku  String
+  productSlug String
+  imageUrl    String?
+  /// Unit price actually charged, in paise.
+  unitPrice   Int
+  quantity    Int
+  lineTotal   Int
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          String        @default("razorpay")
+  providerOrderId   String?
+  providerPaymentId String?       @unique
+  /// Amount in paise.
+  amount            Int
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  failureReason     String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([providerOrderId])
+}
+
+/// Deduplicates provider webhook deliveries — Razorpay retries, and every
+/// retry must be a no-op after the first successful handling.
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String
+  eventId     String
+  eventType   String
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@unique([provider, eventId])
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rating    Int
+  title     String?
+  body      String
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([userId, productId])
+  @@index([productId, status])
+  @@index([status, createdAt])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId, createdAt])
+}
+
+model Coupon {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  description   String?
+  discountType  DiscountType
+  /// PERCENTAGE: whole percent (1-100). FIXED: amount in paise.
+  value         Int
+  /// Minimum cart subtotal in paise.
+  minOrderValue Int          @default(0)
+  /// Optional cap for percentage coupons, in paise.
+  maxDiscount   Int?
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  usageLimit    Int?
+  perUserLimit  Int?
+  usageCount    Int          @default(0)
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  redemptions CouponRedemption[]
+
+  @@index([active, expiresAt])
+}
+
+model CouponRedemption {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([couponId, userId])
+}
+
+/// CMS. A page owns an ordered list of sections; each section's data is a JSON
+/// document whose shape is declared by the section registry in
+/// src/config/cmsSections.js. The frontend decides how a section is rendered —
+/// the database only supplies its content.
+model Page {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections PageSection[]
+}
+
+model PageSection {
+  id       String @id @default(cuid())
+  pageId   String
+  page     Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  /// Stable identifier the frontend looks the section up by (e.g. "hero").
+  key      String
+  /// Section type from the registry; decides the admin form and payload shape.
+  type     String
+  position Int    @default(0)
+  visible  Boolean @default(true)
+  data     Json    @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pageId, key])
+  @@index([pageId, position])
+}
+
+/// Newsletter sign-ups from the storefront footer form. Kept as its own table
+/// (not a User flag) because most subscribers never create an account.
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  source         String    @default("storefront")
+  createdAt      DateTime  @default(now())
+  unsubscribedAt DateTime?
+
+  @@index([createdAt])
+}

@@ -1,0 +1,524 @@
+===============================================================================
+ KABEER — THE ETHNIC STORE
+ Deploying /backend to RENDER (Free tier, for development / staging)
+===============================================================================
+
+This is the DEVELOPMENT deployment. Production lives on Railway — see
+railway_deployment.txt. The frontend is separate — see cloudflare_deployment.txt.
+
+Everything below matches this repository as it stands: the scripts in
+backend/package.json, the variables validated by backend/src/config/env.js, and
+the /health route in backend/src/app.js.
+
+
+-------------------------------------------------------------------------------
+ 0. WHAT YOU ARE DEPLOYING
+-------------------------------------------------------------------------------
+
+  /backend    a single long-running Node process (Fastify)
+              listens on $PORT, 0.0.0.0
+              talks to Supabase PostgreSQL through Prisma
+              talks to Supabase Storage over REST for image uploads
+
+  Not deployed here: /frontend (Cloudflare Pages), the database (Supabase).
+
+
+-------------------------------------------------------------------------------
+ 1. PREREQUISITES
+-------------------------------------------------------------------------------
+
+  [ ] GitHub account with this repository pushed
+  [ ] Render account            https://render.com  (free, no card for free web services)
+  [ ] Supabase project already created and migrated
+      - see README.md section 12 for first-time database setup
+      - you need DATABASE_URL, DIRECT_URL, SUPABASE_URL, SUPABASE_SECRET_KEY
+  [ ] A 48-byte random AUTH_SECRET. Generate one:
+        node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+  [ ] Razorpay TEST keys if you want to exercise checkout (optional)
+
+  IMPORTANT — Supabase region. Every API request makes several database round
+  trips, so pick a Supabase region near your users. Measured from India:
+  ap-south-1 ~75ms, ap-southeast-1 ~119ms, ap-northeast-1 ~196ms. A project's
+  region cannot be changed after creation.
+
+
+-------------------------------------------------------------------------------
+ 2. GITHUB REPOSITORY SETUP
+-------------------------------------------------------------------------------
+
+  Render deploys from a branch. Confirm the repo is pushed and that no secrets
+  are tracked:
+
+      git status --short
+      git ls-files | grep -E "(^|/)\.env$"        # must print nothing
+      git push origin main
+
+  The repository is a monorepo:
+
+      /backend     <- this deployment
+      /frontend    <- Cloudflare Pages
+      README.md
+
+  Render is pointed at the backend using the Root Directory setting in step 3.
+  Do not split the repo.
+
+
+-------------------------------------------------------------------------------
+ 3. CREATE THE RENDER SERVICE
+-------------------------------------------------------------------------------
+
+  Render Dashboard -> New + -> Web Service -> Build and deploy from a Git
+  repository -> select this repo.
+
+  Fill in exactly:
+
+      Name                  kabeer-api-dev
+      Language / Runtime    Node
+      Branch                main
+      Region                choose the one closest to your Supabase region
+      Root Directory        backend
+      Instance Type         Free
+
+      Build Command
+        npm ci && npx prisma generate && npx prisma migrate deploy
+
+      Start Command
+        npm start
+
+  Why migrations run in the Build Command: Render's free plan has no shell
+  access, so there is nowhere else to run them. `prisma migrate deploy` is
+  idempotent — it applies only pending migrations and is a no-op afterwards, so
+  it is safe on every deploy.
+
+  `npm start` resolves to `node src/server.js` (backend/package.json).
+
+
+-------------------------------------------------------------------------------
+ 4. NODE VERSION
+-------------------------------------------------------------------------------
+
+  backend/package.json declares:
+
+      "engines": { "node": ">=20.12" }
+
+  20.12 is a hard floor — src/config/env.js uses process.loadEnvFile, which
+  does not exist before it. Render usually honours `engines`, but pin it
+  explicitly to be safe by adding this environment variable:
+
+      NODE_VERSION = 22
+
+  Do not set it below 20.12.
+
+
+-------------------------------------------------------------------------------
+ 5. ENVIRONMENT VARIABLES
+-------------------------------------------------------------------------------
+
+  Render Dashboard -> your service -> Environment -> Add Environment Variable.
+
+  Every name below is read and validated by backend/src/config/env.js. The
+  service refuses to boot on an invalid value and prints which one is wrong.
+
+  ---- required ----------------------------------------------------------------
+
+    NODE_ENV                   production
+    DATABASE_URL               (see 6)
+    DIRECT_URL                 (see 6)
+    AUTH_SECRET                your generated 48-byte string
+    CORS_ORIGINS               (see 8)
+    FRONTEND_URL               (see 9)
+    COOKIE_SAMESITE            none
+    COOKIE_SECURE              true
+
+  Set NODE_ENV=production even on this dev deployment. It is what strips debug
+  detail out of error responses. "Development" here means the environment, not
+  the log verbosity — use LOG_LEVEL for that.
+
+  COOKIE_SAMESITE=none plus COOKIE_SECURE=true are required because the
+  storefront (Cloudflare Pages) and the API (Render) are on different sites, so
+  the session cookie is cross-site. env.js refuses to start if SameSite=none is
+  paired with COOKIE_SECURE=false.
+
+  ---- storage (needed for admin image uploads) --------------------------------
+
+    SUPABASE_URL               https://<project-ref>.supabase.co
+    SUPABASE_SECRET_KEY        sb_secret_...     (see 7)
+    SUPABASE_STORAGE_BUCKET    product-media
+
+  ---- payments (optional; checkout reports clearly when absent) ---------------
+
+    RAZORPAY_KEY_ID            rzp_test_...
+    RAZORPAY_KEY_SECRET        ...
+    RAZORPAY_WEBHOOK_SECRET    ...              (see 12)
+
+  ---- optional, all have working defaults ------------------------------------
+
+    PORT                       Render injects this. Do NOT set it yourself.
+    HOST                       0.0.0.0          (default, leave unset)
+    LOG_LEVEL                  info
+    SESSION_TTL_DAYS           30
+    TAX_PERCENT                5
+    SHIPPING_FLAT              0                (paise)
+    FREE_SHIPPING_THRESHOLD    0                (paise; 0 = no threshold)
+    ORDER_RESERVATION_MINUTES  30
+    MAX_UPLOAD_BYTES           5242880
+    MAX_BODY_BYTES             1048576
+    COOKIE_DOMAIN              leave unset (the two domains are unrelated)
+
+  ---- seeding only (see 11) ---------------------------------------------------
+
+    SEED_ADMIN_EMAIL           you@example.com
+    SEED_ADMIN_PASSWORD        a strong password, at least 10 characters
+    SEED_ADMIN_NAME            Store Owner
+
+  Never set SUPABASE_SERVICE_ROLE_KEY unless the Supabase project still uses
+  legacy keys. It is accepted as a deprecated fallback and logs a warning.
+
+
+-------------------------------------------------------------------------------
+ 6. SUPABASE DATABASE CONFIGURATION
+-------------------------------------------------------------------------------
+
+  Supabase Dashboard -> Connect -> ORMs (or "Connection string").
+
+  Copy the SESSION POOLER string for BOTH variables:
+
+    DATABASE_URL
+      postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?connection_limit=10&connect_timeout=30
+
+    DIRECT_URL
+      postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?connect_timeout=30
+
+  Four things that will each cost you an hour if you get them wrong:
+
+  (a) DO NOT use the "Direct connection" string (db.<project-ref>.supabase.co).
+      Supabase publishes only an IPv6 (AAAA) record for that host. Render's
+      build and runtime environments, and most local networks, have no IPv6, so
+      it fails with:
+          P1001: Can't reach database server
+      Verify before deploying:
+          nslookup -type=A db.<project-ref>.supabase.co          -> no answer
+          nslookup -type=A aws-0-<region>.pooler.supabase.com    -> answers
+
+  (b) The pooler username is postgres.<project-ref>, NOT postgres. Copy the
+      whole string rather than editing the host by hand — the prefix is not
+      always "aws-0" (newer projects use "aws-1").
+
+  (c) Use the SESSION pooler (port 5432), not the transaction pooler (6543).
+      This backend is one long-running process with a stable pool. The
+      transaction pooler checks out a backend per transaction, which measured
+      ~5x slower per query (905ms vs 180ms) from a different region. The
+      transaction pooler is for serverless.
+
+  (d) connect_timeout=30 matters. Prisma's default is 5 seconds, which is tight
+      across regions and shows up as P1001 even when the network is fine. If
+      raising it turns P1001 into P1000, the network was never the problem —
+      your password is wrong.
+
+  Percent-encode any of @ : / ? # % & that appear in the password.
+
+  Prisma reads DIRECT_URL for migrations and DATABASE_URL at runtime; see the
+  datasource block in backend/prisma/schema.prisma.
+
+
+-------------------------------------------------------------------------------
+ 7. SUPABASE STORAGE CONFIGURATION
+-------------------------------------------------------------------------------
+
+  A new Supabase project has NO buckets. Admin image uploads fail with
+  "The storage bucket ... does not exist" until you create one.
+
+  Supabase Dashboard -> Storage -> New bucket:
+
+      Name                 product-media
+      Public bucket        YES (shoppers must be able to load product images)
+      File size limit      5 MB          (match MAX_UPLOAD_BYTES)
+      Allowed MIME types   image/jpeg, image/png, image/webp, image/avif
+
+  Then Project Settings -> API Keys -> Secret keys -> copy a secret key
+  (sb_secret_...) into SUPABASE_SECRET_KEY.
+
+  Use the SECRET key, not the publishable one. env.js rejects a publishable key
+  at boot rather than letting it fail confusingly on the first upload. The
+  secret key bypasses row-level security — it is server-only and must never be
+  put into any VITE_ variable.
+
+  The backend validates uploads by magic bytes (not by filename), generates the
+  object key itself, and stores only the public URL in PostgreSQL.
+
+
+-------------------------------------------------------------------------------
+ 8. CORS CONFIGURATION
+-------------------------------------------------------------------------------
+
+    CORS_ORIGINS = https://kabeer-store.pages.dev
+
+  A comma-separated list of exact browser origins. Scheme + host + port, no
+  trailing slash, no wildcards.
+
+  This list is used twice: by @fastify/cors, and by the CSRF guard in
+  backend/src/middleware/csrf.js, which rejects any state-changing request whose
+  Origin is not on it. Getting it wrong produces:
+
+      403  {"error":{"code":"FORBIDDEN","message":"Request origin is not allowed"}}
+
+  Cloudflare Pages gives every branch a preview URL. To use previews against
+  this dev API, list them too:
+
+    CORS_ORIGINS = https://kabeer-store.pages.dev,https://dev.kabeer-store.pages.dev
+
+  Do not add a wildcard. Credentials are sent with every request; a wildcard
+  origin with credentials is both invalid and unsafe.
+
+
+-------------------------------------------------------------------------------
+ 9. FRONTEND API URL CONFIGURATION
+-------------------------------------------------------------------------------
+
+  Two directions to wire up.
+
+  Backend -> frontend:
+
+    FRONTEND_URL = https://kabeer-store.pages.dev
+
+  Frontend -> backend. In Cloudflare Pages, set:
+
+    VITE_API_URL = https://kabeer-api-dev.onrender.com/api
+
+  Note the /api suffix. All routes are registered under /api (see
+  backend/src/routes/index.js); the only exception is /health, which is
+  deliberately outside it.
+
+  VITE_ variables are baked into the bundle at BUILD time, so changing
+  VITE_API_URL requires a fresh Cloudflare deploy, not just a restart.
+
+
+-------------------------------------------------------------------------------
+ 10. HEALTH CHECK
+-------------------------------------------------------------------------------
+
+  The backend implements GET /health (backend/src/app.js). It runs
+  `SELECT 1` against PostgreSQL, so it fails when the database is unreachable
+  rather than reporting a false OK.
+
+  Render -> Settings -> Health Check Path:
+
+      /health
+
+  Healthy response:
+
+      {"status":"ok","uptime":37}
+
+  A 500 here means the database is unreachable — check section 6.
+
+
+-------------------------------------------------------------------------------
+ 11. PRISMA MIGRATIONS AND SEEDING
+-------------------------------------------------------------------------------
+
+  MIGRATIONS run automatically. `npx prisma migrate deploy` is part of the
+  Build Command (section 3) and applies backend/prisma/migrations/ in order.
+  It never generates new migrations and never drops data.
+
+  If the database already has the schema but no _prisma_migrations table, mark
+  the baseline as applied once from your own machine (pointing at the same
+  database):
+
+      cd backend
+      npx prisma migrate resolve --applied 20260920000000_init
+
+  SEEDING is manual and only needed once, on an empty database. The free plan
+  has no shell, so run it locally against the same Supabase project:
+
+      cd backend
+      # .env pointing at the deployed database
+      npm run db:seed
+
+  This creates 4 categories, 22 products, 1 coupon, 5 CMS pages and — when
+  SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD are set — the first administrator.
+
+  db:seed is CREATE-ONLY. Re-running it creates only what is missing and never
+  overwrites an existing record, so it cannot undo catalogue edits, uploaded
+  images or page content. `npm run db:seed -- --force` does overwrite, deletes
+  uploaded images on seeded products, and announces itself first. NEVER put
+  --force in a deploy pipeline.
+
+
+-------------------------------------------------------------------------------
+ 12. RAZORPAY WEBHOOK (optional)
+-------------------------------------------------------------------------------
+
+  Razorpay Dashboard -> Settings -> Webhooks -> Add New Webhook:
+
+      URL      https://kabeer-api-dev.onrender.com/api/webhooks/razorpay
+      Events   payment.captured, payment.failed, order.paid
+      Secret   any strong random string
+
+  Put that same string in RAZORPAY_WEBHOOK_SECRET.
+
+  The webhook route is exempt from the CORS/Origin checks — it authenticates by
+  HMAC over the raw request body — and is deduplicated by event id, so retries
+  are no-ops.
+
+  On the free tier the service sleeps (section 15). A webhook arriving while it
+  is asleep will hit a cold start and may time out. Razorpay retries, so it
+  usually settles, but do not rely on the free tier for payment webhooks.
+
+
+-------------------------------------------------------------------------------
+ 13. CUSTOM DOMAIN / API SUBDOMAIN (optional on dev)
+-------------------------------------------------------------------------------
+
+  The free onrender.com URL is fine for development. If you want a subdomain:
+
+  1. Render -> Settings -> Custom Domains -> Add -> api-dev.yourdomain.com
+  2. At your DNS provider create the CNAME Render shows you:
+
+         Type   CNAME
+         Name   api-dev
+         Value  kabeer-api-dev.onrender.com
+         Proxy  DNS only (grey cloud) if the DNS is on Cloudflare
+
+  3. Render issues a TLS certificate automatically once DNS resolves.
+  4. Update VITE_API_URL in Cloudflare to https://api-dev.yourdomain.com/api
+     and redeploy the frontend.
+  5. Update CORS_ORIGINS only if the FRONTEND origin changed — it is about the
+     storefront's address, not the API's.
+
+  If the API ends up on a subdomain of the same parent domain as the storefront,
+  you can switch to the stricter cookie setting:
+
+      COOKIE_SAMESITE = lax
+      COOKIE_DOMAIN   = .yourdomain.com
+
+
+-------------------------------------------------------------------------------
+ 14. VERIFY THE DEPLOYMENT
+-------------------------------------------------------------------------------
+
+  Replace the host with yours.
+
+  1) Health and database
+
+       curl https://kabeer-api-dev.onrender.com/health
+       -> {"status":"ok","uptime":12}
+
+  2) Public catalogue reads
+
+       curl https://kabeer-api-dev.onrender.com/api/categories
+       curl "https://kabeer-api-dev.onrender.com/api/products?limit=3"
+       -> JSON with a data array
+
+  3) Payments configured?
+
+       curl https://kabeer-api-dev.onrender.com/api/payments/config
+       -> {"data":{"provider":"razorpay","enabled":true,"currency":"INR"}}
+
+  4) Admin routes are protected (THIS MUST BE 401)
+
+       curl -i https://kabeer-api-dev.onrender.com/api/admin/dashboard
+       -> HTTP/1.1 401 ... {"error":{"code":"UNAUTHORIZED",...}}
+
+  5) CSRF guard rejects a foreign origin (THIS MUST BE 403)
+
+       curl -i -X POST https://kabeer-api-dev.onrender.com/api/auth/login \
+         -H "Origin: https://evil.example" -H "Content-Type: application/json" \
+         -d '{"email":"a@b.com","password":"whatever12345"}'
+       -> HTTP/1.1 403 ... "Request origin is not allowed"
+
+  6) End to end, in a browser: open the Cloudflare URL, register, add to cart,
+     sign in as the admin, open /admin, upload a product image.
+
+
+-------------------------------------------------------------------------------
+ 15. COMMON PROBLEMS
+-------------------------------------------------------------------------------
+
+  "Invalid environment configuration" and the service exits
+      The log names the variable. Most often AUTH_SECRET is under 32 characters
+      or DATABASE_URL is not a URL. Fix and redeploy.
+
+  P1001: Can't reach database server
+      Almost always the IPv6-only "Direct connection" host. See section 6(a).
+      Second most likely: connect_timeout too low. See 6(d).
+
+  P1000: Authentication failed
+      Wrong database password, or the username is missing .<project-ref>.
+      Reset under Project Settings -> Database -> Database password and update
+      BOTH DATABASE_URL and DIRECT_URL.
+
+  COOKIE_SAMESITE=none requires COOKIE_SECURE=true
+      Exactly what it says. Both must be set together.
+
+  Login succeeds but the next request is 401
+      The cookie is not coming back. Check all four: COOKIE_SAMESITE=none,
+      COOKIE_SECURE=true, both sides on HTTPS, and the storefront's exact
+      origin present in CORS_ORIGINS.
+
+  403 "Request origin is not allowed"
+      The browser's origin is not in CORS_ORIGINS. Exact match required — no
+      trailing slash. Cloudflare preview deployments have different hostnames.
+
+  "The storage bucket ... does not exist"
+      Create it. Section 7.
+
+  "This is the publishable key. Use the secret key (sb_secret_...)"
+      You pasted the publishable key into SUPABASE_SECRET_KEY.
+
+  First request after idle takes ~50 seconds
+      Free tier only: Render spins the service down after 15 minutes of
+      inactivity and cold-starts it on the next request. This is why Render is
+      the development target and Railway is production. Do not "fix" it with an
+      external pinger — that burns the free instance hours.
+
+  Build succeeds, service immediately restarts in a loop
+      Read the deploy log for the env validation message. Also make sure you
+      did NOT set PORT yourself — Render injects it and the process must bind
+      to the injected value.
+
+  Empty storefront, no products
+      The database was never seeded, or the products are still DRAFT. See
+      section 11, or set a product Active in the admin.
+
+
+-------------------------------------------------------------------------------
+ 16. UPDATING / REDEPLOYING
+-------------------------------------------------------------------------------
+
+  Automatic:
+
+      git push origin main
+
+  Render rebuilds and redeploys on every push to the configured branch. Because
+  `prisma migrate deploy` is in the Build Command, a schema change ships with
+  its migration automatically — provided you committed the migration.
+
+  Manual:
+
+      Render Dashboard -> your service -> Manual Deploy
+        "Deploy latest commit"   normal redeploy
+        "Clear build cache & deploy"   after dependency or Node version changes
+
+  Rollback:
+
+      Dashboard -> Events -> find an earlier successful deploy -> Rollback.
+      NOTE: this rolls back CODE only. It does not undo a database migration.
+      If the bad deploy included a destructive migration, you need a database
+      restore, not a rollback.
+
+  Changing an environment variable restarts the service automatically; it does
+  not rebuild. Anything VITE_ is a frontend build-time value and belongs in
+  Cloudflare, not here.
+
+
+-------------------------------------------------------------------------------
+ 17. WHAT IS DIFFERENT ON PRODUCTION (RAILWAY)
+-------------------------------------------------------------------------------
+
+  - No spin-down, so no cold starts and webhooks are reliable
+  - Live Razorpay keys instead of test keys
+  - A separate Supabase project, so a bad dev seed cannot touch real orders
+  - Migrations run as a release step with shell access, not in the build
+  - See railway_deployment.txt
+
+===============================================================================
