@@ -124,6 +124,27 @@ backend/src/app.js.
  5. ENVIRONMENT VARIABLES
 -------------------------------------------------------------------------------
 
+  ---- PASTE THE VALUE ONLY --------------------------------------------------
+
+  A dashboard field is a literal string. It is NOT a shell and NOT a .env file,
+  so nothing is unquoted for you. Three things must never come along with a
+  paste:
+
+      quotes      "postgresql://..."   -> stored WITH the quotes
+      the key     DATABASE_URL=post... -> stored WITH the name in front
+      whitespace  a trailing newline from a multi-line copy
+
+  backend/.env.example is written unquoted for exactly this reason. A quoted
+  DATABASE_URL fails the build with
+
+      P1013: The provided database string is invalid. The scheme is not
+             recognized in database URL
+
+  because Prisma reads the scheme as  "postgresql  instead of  postgresql.
+  The same mistake on EMAIL_FROM makes Resend reject every message, and on
+  CORS_ORIGINS it silently 403s every request from the storefront.
+
+
   Service -> Variables. Every name is read and validated by
   backend/src/config/env.js; the process refuses to boot on an invalid value
   and names the offending variable.
@@ -134,15 +155,15 @@ backend/src/app.js.
     DATABASE_URL               (see 6)
     DIRECT_URL                 (see 6)
     AUTH_SECRET                fresh 48-byte value, NOT the dev one
-    CORS_ORIGINS               https://kabeer.com,https://www.kabeer.com
-    FRONTEND_URL               https://kabeer.com
+    CORS_ORIGINS               https://kabeertheethnicstore.com,https://www.kabeertheethnicstore.com
+    FRONTEND_URL               https://kabeertheethnicstore.com
     COOKIE_SAMESITE            lax        (see the note below)
-    COOKIE_DOMAIN              .kabeer.com
+    COOKIE_DOMAIN              .kabeertheethnicstore.com
     COOKIE_SECURE              true
 
   Cookie strategy. In production put the API on a subdomain of the storefront's
-  domain — storefront kabeer.com, API api.kabeer.com. They then share a site, so
-  the session cookie can be SameSite=Lax with COOKIE_DOMAIN=.kabeer.com. That is
+  domain — storefront kabeertheethnicstore.com, API api.kabeertheethnicstore.com. They then share a site, so
+  the session cookie can be SameSite=Lax with COOKIE_DOMAIN=.kabeertheethnicstore.com. That is
   strictly safer than the cross-site setup development uses, and it survives
   browsers tightening third-party cookie rules.
 
@@ -332,7 +353,7 @@ backend/src/app.js.
  8. CORS
 -------------------------------------------------------------------------------
 
-    CORS_ORIGINS = https://kabeer.com,https://www.kabeer.com
+    CORS_ORIGINS = https://kabeertheethnicstore.com,https://www.kabeertheethnicstore.com
 
   Browser origins, comma separated: scheme + host + port. No wildcards.
 
@@ -362,11 +383,11 @@ backend/src/app.js.
 
   Backend knows the storefront:
 
-    FRONTEND_URL = https://kabeer.com
+    FRONTEND_URL = https://kabeertheethnicstore.com
 
   Storefront knows the backend. In Cloudflare Pages -> Production environment:
 
-    VITE_API_URL = https://api.kabeer.com/api
+    VITE_API_URL = https://api.kabeertheethnicstore.com/api
 
   The /api suffix is required: every route is registered under /api
   (backend/src/routes/index.js). /health is deliberately outside it.
@@ -379,7 +400,7 @@ backend/src/app.js.
  10. DOMAIN, HTTPS AND PROXYING
 -------------------------------------------------------------------------------
 
-  1. Railway -> Settings -> Networking -> Custom Domain -> api.kabeer.com
+  1. Railway -> Settings -> Networking -> Custom Domain -> api.kabeertheethnicstore.com
   2. Railway shows a CNAME target. At your DNS provider:
 
          Type   CNAME
@@ -400,7 +421,7 @@ backend/src/app.js.
 
   Verify the certificate:
 
-      curl -sSI https://api.kabeer.com/health | head -1
+      curl -sSI https://api.kabeertheethnicstore.com/health | head -1
 
 
 -------------------------------------------------------------------------------
@@ -456,7 +477,7 @@ backend/src/app.js.
 
   Razorpay Dashboard (LIVE mode) -> Settings -> Webhooks -> Add New Webhook:
 
-      URL      https://api.kabeer.com/api/webhooks/razorpay
+      URL      https://api.kabeertheethnicstore.com/api/webhooks/razorpay
       Events   payment.captured
                payment.failed
                order.paid
@@ -497,32 +518,32 @@ backend/src/app.js.
 
   1) Health
 
-       curl https://api.kabeer.com/health
+       curl https://api.kabeertheethnicstore.com/health
        -> {"status":"ok","uptime":...}
 
   2) Catalogue
 
-       curl https://api.kabeer.com/api/categories
-       curl "https://api.kabeer.com/api/products?limit=3"
+       curl https://api.kabeertheethnicstore.com/api/categories
+       curl "https://api.kabeertheethnicstore.com/api/products?limit=3"
 
   3) LIVE payments are on
 
-       curl https://api.kabeer.com/api/payments/config
+       curl https://api.kabeertheethnicstore.com/api/payments/config
        -> {"data":{"provider":"razorpay","enabled":true,"currency":"INR"}}
 
   4) Admin is protected — MUST be 401
 
-       curl -i https://api.kabeer.com/api/admin/dashboard
+       curl -i https://api.kabeertheethnicstore.com/api/admin/dashboard
 
   5) CSRF guard — MUST be 403
 
-       curl -i -X POST https://api.kabeer.com/api/auth/login \
+       curl -i -X POST https://api.kabeertheethnicstore.com/api/auth/login \
          -H "Origin: https://evil.example" -H "Content-Type: application/json" \
          -d '{"email":"a@b.com","password":"whatever12345"}'
 
   6) Security headers present
 
-       curl -sSI https://api.kabeer.com/health | grep -i "x-frame\|x-content"
+       curl -sSI https://api.kabeertheethnicstore.com/health | grep -i "x-frame\|x-content"
 
   7) One real low-value order, end to end: place it, pay it, confirm the order
      shows PAID in /admin, and confirm stock decremented. Then refund it from
@@ -624,7 +645,7 @@ backend/src/app.js.
 
   Customers get logged out immediately
       Cookie is not being stored. On a shared parent domain check
-      COOKIE_DOMAIN=.kabeer.com and COOKIE_SAMESITE=lax; on unrelated domains
+      COOKIE_DOMAIN=.kabeertheethnicstore.com and COOKIE_SAMESITE=lax; on unrelated domains
       check COOKIE_SAMESITE=none plus COOKIE_SECURE=true and HTTPS both sides.
 
   403 "Request origin is not allowed" from the real storefront
@@ -668,9 +689,9 @@ backend/src/app.js.
   Razorpay keys      rzp_test_...                rzp_live_...
   AUTH_SECRET        dev value                   different value
   cookies            SameSite=none + Secure      SameSite=lax + COOKIE_DOMAIN
-                     (unrelated domains)         (API on api.kabeer.com)
+                     (unrelated domains)         (API on api.kabeertheethnicstore.com)
   CORS_ORIGINS       *.pages.dev preview URLs    live origins only
-  domain             kabeer-api-dev.onrender.com api.kabeer.com
+  domain             kabeer-api-dev.onrender.com api.kabeertheethnicstore.com
   seeding            fine, it is demo data       avoid; real catalogue via admin
   webhooks           unreliable (spin-down)      required and reliable
   backups            not needed                  PITR / scheduled, mandatory

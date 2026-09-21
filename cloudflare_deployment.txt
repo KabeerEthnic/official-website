@@ -129,13 +129,32 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
 
   ---- Production --------------------------------------------------------------
 
-      VITE_API_URL   https://api.kabeer.com/api
+      VITE_API_URL   https://api.kabeertheethnicstore.com/api
       NODE_VERSION   22
 
   ---- Preview -----------------------------------------------------------------
 
       VITE_API_URL   https://kabeer-api-dev.onrender.com/api
       NODE_VERSION   22
+
+  WHERE THOSE TWO HOSTNAMES COME FROM. Neither is issued to you automatically —
+  you have to look one up and create the other:
+
+    kabeer-api-dev.onrender.com
+        Render gives every web service a hostname when you create it. Yours is
+        at the top of the service page in the Render dashboard, and it is
+        <whatever-you-named-the-service>.onrender.com. Substitute it.
+
+    api.kabeertheethnicstore.com
+        A custom domain you create yourself once the API is on Railway:
+        Railway -> Settings -> Networking -> Custom Domain, then a CNAME in
+        Cloudflare DNS (railway_deployment.txt section 10). It does not exist
+        until you do that.
+
+        Until then, use whichever hostname the platform gave you —
+        <project>.up.railway.app, or the Render one above if production is still
+        on Render. Whatever you use here must also appear in the API's own
+        CORS_ORIGINS, or every request is refused (section 7).
 
   Point previews at the DEVELOPMENT API. A preview build from an unreviewed
   branch must not be able to drive the live store — and the production API's
@@ -185,8 +204,14 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
 
   On the backend (Railway for production):
 
-      CORS_ORIGINS = https://kabeer.com,https://www.kabeer.com
-      FRONTEND_URL = https://kabeer.com
+      CORS_ORIGINS = https://kabeertheethnicstore.com,https://www.kabeertheethnicstore.com
+      FRONTEND_URL = https://www.kabeertheethnicstore.com
+
+  FRONTEND_URL is the canonical origin — the www host, since that is where the
+  redirect rule sends everyone. CORS_ORIGINS lists the apex as well, because a
+  visitor can land on it before the redirect fires. No trailing slash on either:
+  a browser never sends one in the Origin header, so it would reject every
+  mutation with 403.
 
   On the development backend (Render), include the Pages URLs used for previews:
 
@@ -197,9 +222,11 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
   development API.
 
   Cookies: the session cookie is set by the API, not by Pages. If the API is on
-  a subdomain of the storefront's domain (api.kabeer.com + kabeer.com) the
-  backend should use COOKIE_SAMESITE=lax with COOKIE_DOMAIN=.kabeer.com. On
-  unrelated domains it needs COOKIE_SAMESITE=none and COOKIE_SECURE=true. See
+  a subdomain of the storefront's domain (api.kabeertheethnicstore.com next to
+  www.kabeertheethnicstore.com), the backend can use COOKIE_SAMESITE=lax with
+  COOKIE_DOMAIN=.kabeertheethnicstore.com. While the API is on onrender.com or
+  up.railway.app the two domains are unrelated, so it needs COOKIE_SAMESITE=none
+  and COOKIE_SECURE=true, and COOKIE_DOMAIN must stay unset. See
   railway_deployment.txt section 5.
 
 
@@ -207,13 +234,13 @@ the config in frontend/vite.config.js, and the files in frontend/public/.
  8. CUSTOM DOMAIN
 -------------------------------------------------------------------------------
 
-  Pages project -> Custom domains -> Set up a custom domain -> kabeer.com.
+  Pages project -> Custom domains -> Set up a custom domain -> kabeertheethnicstore.com.
 
   If the domain is already on Cloudflare (nameservers pointed at Cloudflare),
   the DNS record is created for you — usually a CNAME on the apex, flattened
   automatically. Nothing to do by hand.
 
-  For www as well, add www.kabeer.com as a second custom domain, then decide
+  For www as well, add www.kabeertheethnicstore.com as a second custom domain, then decide
   which is canonical and redirect the other (Rules -> Redirect Rules). Serving
   both without a redirect splits SEO and means both must appear in CORS_ORIGINS.
 

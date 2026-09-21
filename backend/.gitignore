@@ -1,6 +1,9 @@
 node_modules/
 .env
 .env.*
+# Catches env exports downloaded from a hosting dashboard, whose names do
+# not start with ".env", e.g. kabeer-api-dev.env from Render.
+*.env
 !.env.example
 *.log
 dist/

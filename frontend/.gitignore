@@ -22,7 +22,7 @@ dist-ssr/
 *.njsproj
 *.sln
 *.sw?
-
+# boom shaka laka
 # Environment variables
 .env
 .env.local

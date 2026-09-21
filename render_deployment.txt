@@ -111,10 +111,37 @@ the /health route in backend/src/app.js.
 
   Do not set it below 20.12.
 
+  Set it. Without it Render resolves `>=20.12` to whatever the newest release
+  is on the day it builds — a deploy log line reading "Using Node.js version
+  26.9.0" means it picked a version this stack has never been tested on, and
+  the version can change under you between two deploys of the same commit.
+  Pinning 22 (the active LTS) makes the build reproducible.
+
 
 -------------------------------------------------------------------------------
  5. ENVIRONMENT VARIABLES
 -------------------------------------------------------------------------------
+
+  ---- PASTE THE VALUE ONLY --------------------------------------------------
+
+  A dashboard field is a literal string. It is NOT a shell and NOT a .env file,
+  so nothing is unquoted for you. Three things must never come along with a
+  paste:
+
+      quotes      "postgresql://..."   -> stored WITH the quotes
+      the key     DATABASE_URL=post... -> stored WITH the name in front
+      whitespace  a trailing newline from a multi-line copy
+
+  backend/.env.example is written unquoted for exactly this reason. A quoted
+  DATABASE_URL fails the build with
+
+      P1013: The provided database string is invalid. The scheme is not
+             recognized in database URL
+
+  because Prisma reads the scheme as  "postgresql  instead of  postgresql.
+  The same mistake on EMAIL_FROM makes Resend reject every message, and on
+  CORS_ORIGINS it silently 403s every request from the storefront.
+
 
   Render Dashboard -> your service -> Environment -> Add Environment Variable.
 
@@ -539,6 +566,33 @@ the /health route in backend/src/app.js.
   "Invalid environment configuration" and the service exits
       The log names the variable. Most often AUTH_SECRET is under 32 characters
       or DATABASE_URL is not a URL. Fix and redeploy.
+
+  P1013: The provided database string is invalid. The scheme is not recognized
+      The variable IS set — a missing one gives "Environment variable not
+      found" instead — but its value does not begin with postgresql:// or
+      postgres://. `prisma migrate deploy` reads BOTH DATABASE_URL and
+      DIRECT_URL (schema.prisma sets directUrl), so either one can cause it.
+
+      In practice it is one of these, in order of how often it happens:
+
+        - The variable name was pasted into the value box as well, so the
+          value is  DATABASE_URL=postgresql://...
+        - Quotes came along with the paste:  "postgresql://..."
+          Render stores them literally; they are not shell quotes.
+        - The wrong tab in Supabase's Connect dialog. "JDBC" gives
+          jdbc:postgresql://... and "psql" gives  psql "postgresql://..." —
+          neither is a connection string. Use the ORM / URI tab.
+        - A leading space or newline from a multi-line copy.
+
+      Find out which without exposing the password by prefixing the build
+      command temporarily:
+
+        node -e "for(const k of['DATABASE_URL','DIRECT_URL']){const v=process.env[k];console.log(k,v===undefined?'UNSET':JSON.stringify(v.slice(0,14))+' len='+v.length)}" && npm ci && npx prisma generate && npx prisma migrate deploy
+
+      Healthy output is  "postgresql://"  for both, with a length around
+      110-130. Anything else is the bug, visible in the first 14 characters —
+      including len=0, which means the variable was saved with an empty value.
+      Put the build command back afterwards.
 
   P1001: Can't reach database server
       Almost always the IPv6-only "Direct connection" host. See section 6(a).
