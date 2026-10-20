@@ -17,6 +17,7 @@ import {
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 
 import { ErrorBoundary } from '../../components/ErrorBoundary.jsx';
+import { CurtainSwitch } from '../../components/admin/Curtain.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 const NAV = [
@@ -73,6 +74,8 @@ export function AdminLayout() {
             </Link>
             <p className="text-white/40 text-xs mt-1">{user?.email}</p>
           </div>
+
+          <CurtainSwitch />
 
           <nav className="p-3 space-y-1">
             {NAV.map((item) => (

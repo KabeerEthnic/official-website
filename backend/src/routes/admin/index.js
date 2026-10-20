@@ -56,6 +56,7 @@ import {
   listAdminReviews,
   patchReviewStatus,
 } from '../../controllers/admin/reviews.controller.js';
+import { getAdminCurtain, patchCurtain } from '../../controllers/admin/site.controller.js';
 import { requireAdmin } from '../../middleware/auth.js';
 
 /**
@@ -111,6 +112,10 @@ export default async function adminRoutes(app) {
 
   app.post('/media', postUpload);
   app.delete('/media', deleteUpload);
+
+  // The storefront curtain — one click closes or reopens the whole shop.
+  app.get('/site/curtain', getAdminCurtain);
+  app.patch('/site/curtain', patchCurtain);
 
   /* ------------------------------------------------------------ governance */
 

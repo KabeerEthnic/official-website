@@ -48,6 +48,7 @@ describe('authorization', () => {
     '/api/admin/governance/tickets',
     '/api/admin/governance/audit',
     '/api/admin/governance/admins',
+    '/api/admin/site/curtain',
   ];
 
   for (const url of adminRoutes) {

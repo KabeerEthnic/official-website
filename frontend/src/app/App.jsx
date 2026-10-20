@@ -6,6 +6,7 @@ import { PageLoader } from './components/Feedback.jsx';
 import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
+import { SiteProvider } from './context/SiteContext.jsx';
 import { WishlistProvider } from './context/WishlistContext.jsx';
 import { Layout } from './layouts/Layout.jsx';
 import { Home } from './pages/Home.jsx';
@@ -67,52 +68,54 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <ErrorBoundary>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route path="/" element={<Layout />}>
-                    <Route index element={<Home />} />
-                    <Route path="shop" element={<Shop />} />
-                    <Route path="product/:slug" element={<ProductDetails />} />
-                    <Route path="cart" element={<Cart />} />
-                    <Route path="login" element={<Login />} />
-                    <Route path="register" element={<Register />} />
-                    <Route path="forgot-password" element={<ForgotPassword />} />
-                    <Route path="policies/:slug" element={<Policy />} />
+        <SiteProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <ErrorBoundary>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route path="/" element={<Layout />}>
+                      <Route index element={<Home />} />
+                      <Route path="shop" element={<Shop />} />
+                      <Route path="product/:slug" element={<ProductDetails />} />
+                      <Route path="cart" element={<Cart />} />
+                      <Route path="login" element={<Login />} />
+                      <Route path="register" element={<Register />} />
+                      <Route path="forgot-password" element={<ForgotPassword />} />
+                      <Route path="policies/:slug" element={<Policy />} />
 
-                    <Route element={<ProtectedRoute />}>
-                      <Route path="checkout" element={<Checkout />} />
-                      <Route path="account" element={<Account />} />
-                      <Route path="support" element={<Support />} />
+                      <Route element={<ProtectedRoute />}>
+                        <Route path="checkout" element={<Checkout />} />
+                        <Route path="account" element={<Account />} />
+                        <Route path="support" element={<Support />} />
+                      </Route>
+
+                      <Route path="*" element={<NotFound />} />
                     </Route>
 
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
-
-                  <Route element={<ProtectedRoute requireAdmin />}>
-                    <Route path="/admin" element={<AdminLayout />}>
-                      <Route index element={<AdminDashboard />} />
-                      <Route path="products" element={<AdminProducts />} />
-                      <Route path="products/new" element={<AdminProductEditor />} />
-                      <Route path="products/:id" element={<AdminProductEditor />} />
-                      <Route path="categories" element={<AdminCategories />} />
-                      <Route path="orders" element={<AdminOrders />} />
-                      <Route path="orders/:id" element={<AdminOrderDetail />} />
-                      <Route path="customers" element={<AdminCustomers />} />
-                      <Route path="reviews" element={<AdminReviews />} />
-                      <Route path="coupons" element={<AdminCoupons />} />
-                      <Route path="content" element={<AdminContent />} />
-                      <Route path="content/:slug" element={<AdminContent />} />
-                      <Route path="governance" element={<AdminGovernance />} />
+                    <Route element={<ProtectedRoute requireAdmin />}>
+                      <Route path="/admin" element={<AdminLayout />}>
+                        <Route index element={<AdminDashboard />} />
+                        <Route path="products" element={<AdminProducts />} />
+                        <Route path="products/new" element={<AdminProductEditor />} />
+                        <Route path="products/:id" element={<AdminProductEditor />} />
+                        <Route path="categories" element={<AdminCategories />} />
+                        <Route path="orders" element={<AdminOrders />} />
+                        <Route path="orders/:id" element={<AdminOrderDetail />} />
+                        <Route path="customers" element={<AdminCustomers />} />
+                        <Route path="reviews" element={<AdminReviews />} />
+                        <Route path="coupons" element={<AdminCoupons />} />
+                        <Route path="content" element={<AdminContent />} />
+                        <Route path="content/:slug" element={<AdminContent />} />
+                        <Route path="governance" element={<AdminGovernance />} />
+                      </Route>
                     </Route>
-                  </Route>
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
-          </WishlistProvider>
-        </CartProvider>
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </WishlistProvider>
+          </CartProvider>
+        </SiteProvider>
       </AuthProvider>
     </BrowserRouter>
   );

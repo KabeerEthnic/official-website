@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { admin } from '../../../lib/api/index.js';
 import { formatDate, formatPrice, titleCase } from '../../../lib/format.js';
 import { ErrorState, InlineLoader } from '../../components/Feedback.jsx';
+import { CurtainPanel } from '../../components/admin/Curtain.jsx';
 import { Panel, Pill, Table } from '../../components/admin/ui.jsx';
 import { useQuery } from '../../hooks/useQuery.js';
 
@@ -49,6 +50,8 @@ export function Dashboard() {
           hint={`${data.customers.newsletterSubscribers} newsletter subscribers`}
         />
       </div>
+
+      <CurtainPanel />
 
       {data.moderation.pendingReviews > 0 ? (
         <Panel>

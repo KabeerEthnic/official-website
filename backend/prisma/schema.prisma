@@ -569,3 +569,18 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([action])
 }
+
+/// The storefront curtain: one row (id "site") that, when `enabled`, hides the
+/// whole storefront behind a closed-for-now screen. Administrators still see
+/// the real site, and checkout is refused server-side while it is down.
+model SiteCurtain {
+  id        String    @id @default("site")
+  enabled   Boolean   @default(false)
+  title     String    @default("We'll be back shortly")
+  message   String    @default("The boutique is being freshened up. Please visit again soon.")
+  /// When the curtain last went down; null while it is up.
+  droppedAt DateTime?
+  /// Email of the administrator who last changed it.
+  updatedBy String?
+  updatedAt DateTime  @updatedAt
+}

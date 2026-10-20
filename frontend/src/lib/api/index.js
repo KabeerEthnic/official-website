@@ -79,6 +79,11 @@ export const content = {
   page: (slug, options) => api.get(`/pages/${slug}`, options).then((r) => r.data),
 };
 
+export const site = {
+  /** Whether the storefront curtain is down, and what it says. */
+  status: (options) => api.get('/site', options).then((r) => r.data),
+};
+
 export const newsletter = {
   subscribe: (email) => api.post('/newsletter', { email }),
 };
@@ -150,6 +155,10 @@ export const admin = {
   signOutAdmin: (id) => api.post(`/admin/governance/admins/${id}/sign-out`).then((r) => r.data),
   revokeAdmin: (id) => api.post(`/admin/governance/admins/${id}/revoke`).then((r) => r.data),
   deleteAdmin: (id) => api.delete(`/admin/governance/admins/${id}`),
+
+  // The storefront curtain.
+  curtain: (options) => api.get('/admin/site/curtain', options).then((r) => r.data),
+  updateCurtain: (input) => api.patch('/admin/site/curtain', input).then((r) => r.data),
 
   uploadMedia: (file, folder = 'products') => {
     const form = new FormData();
